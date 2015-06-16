@@ -1,0 +1,7 @@
+cabal-dev/
+dist/
+TAGS
+
+_cache/
+_site/
+.cabal-sandbox/
