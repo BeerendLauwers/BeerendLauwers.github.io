@@ -100,6 +100,26 @@ Creating beerendlauwers\about.rst
 Creating beerendlauwers\test.cabal
 ```
 
+Ok, now let's build the `site.hs` file:
+
+```
+> ghc --make -threaded site.hs
+
+site.hs:4:18:
+    Could not find module â€˜Hakyllâ€™
+    Use -v to see a list of the files searched for.
+```
+
+Hmm. Apparently GHC doesn't know about our sandbox. Some quick googling reveals the following solution:
+
+```
+> ghc -package-db=.cabal-sandbox/x86_64-windows-ghc-7.8.4-packages.conf.d --make -threaded site.hs
+[1 of 1] Compiling Main             ( site.hs, site.o )
+Linking site.exe ...
+```
+
+Great, that works.
+
 ### Customizing the site
 
 I took over the great majority of the layout of [Chris Done's excellent website](http://chrisdone.com/).
@@ -167,5 +187,4 @@ I had already configured a Github pages repository, so all I needed to do was pu
 
 There's some really fancy deployment options available, such as automatic deployment with [Travis CI](http://begriffs.com/posts/2014-08-12-create-static-site-with-hakyll-github.html).
 
-I'll keep it simple for the moment:
-
+I'll keep it simple for the moment and just push my changes to `master` manually.
