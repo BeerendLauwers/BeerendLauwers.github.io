@@ -333,3 +333,5 @@ And, like magic, the files are there!
 
 Docker containers are a great way to modularly build up functionality.
 It's awesome that we're able to take a basic Docker container that just builds a public repository and derive from it to build a container that does a custom deploy.
+
+Here are some `Dockerfiles` that you might find useful: [host-to-host (local build) and repo-to-host (pull repo, local build)](https://github.com/beerendlauwers/dockerfiles).
