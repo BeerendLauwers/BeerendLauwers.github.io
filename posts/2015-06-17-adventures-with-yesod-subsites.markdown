@@ -754,3 +754,7 @@ Google?
 [http://blog.pangyanhan.com/haskell/2013-11-31-using-cabal-sandbox-libraries.html](http://blog.pangyanhan.com/haskell/2013-11-31-using-cabal-sandbox-libraries.html)
 
 Nope.
+
+## Conclusion
+
+There is still a lot to be done to make Yesod development productive without boatloads of [yak shaving](https://en.wiktionary.org/wiki/yak_shaving). It was very hard to find examples of the functionality I wanted, or even a usable (and working with the latest stable release!) list of Yesod subsites.
