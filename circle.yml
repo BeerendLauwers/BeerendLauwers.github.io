@@ -9,10 +9,4 @@ dependencies:
 # Compile pages during the test stage
 test:
   post:
-    - make
-
-deployment:
-  production:
-    branch: source
-    commands:
     - "make deploy"
