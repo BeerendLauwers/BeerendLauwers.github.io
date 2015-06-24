@@ -3,7 +3,9 @@ dist/
 TAGS
 cabal.sandbox.config
 
-site.*
+site.exe
+site.hi
+site.o
 _cache/
 _site/
 .cabal-sandbox/
