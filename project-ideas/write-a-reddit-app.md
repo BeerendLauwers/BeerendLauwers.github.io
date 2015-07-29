@@ -14,8 +14,8 @@ Recently, [a library for interfacing with Reddit's API](https://hackage.haskell.
 
 * You'll want to save the posts to a persistent store. 
 Lots of options here: an SQL database, a NoSQL store, a Git repo, ...  
-Might be best to do this first before you actually try to display it.
-Others might be able to use the "save your posts to X" as a library!
+Might be best to do this first before you actually try to do things with it.
+Others might be able to use the "save your posts to X" functionality as a library!
 
 * How to save the post? A simple MarkDown blob with some metadata at the top?
 Or perhaps a more structured approach for fancy filtering and categorization?
