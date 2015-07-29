@@ -43,7 +43,7 @@ Lots of stuff:
 You'll first have to be able to talk with one of the APIs.
 Getting back some JSON, you'll want to cast that to a concrete data type.
 
-Think about how you will structure this in your code.
+Think about how you will structure actions in your code.
 Perhaps use typeclasses to indicate the type of an action?
 What about unrecognized actions?
 
