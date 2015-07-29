@@ -31,6 +31,27 @@ main = hakyll $ do
             >>= loadAndApplyTemplate "templates/post.html"    postCtx
             >>= loadAndApplyTemplate "templates/default.html" postCtx
             >>= relativizeUrls
+            
+    match "project-ideas/*" $ do
+        route $ setExtension "html"
+        compile $ pandocCompiler
+            >>= loadAndApplyTemplate "templates/project-idea.html"    postCtx
+            >>= loadAndApplyTemplate "templates/default.html" postCtx
+            >>= relativizeUrls
+            
+    create ["project-ideas.html"] $ do
+        route idRoute
+        compile $ do
+            ideas <- loadAll "project-ideas/*"
+            let ideasCtx =
+                    listField "project-ideas" postCtx (return ideas) `mappend`
+                    constField "title" "Project Ideas"            `mappend`
+                    defaultContext
+
+            makeItem ""
+                >>= loadAndApplyTemplate "templates/project-ideas.html" ideasCtx
+                >>= loadAndApplyTemplate "templates/default.html" ideasCtx
+                >>= relativizeUrls
 
     create ["archive.html"] $ do
         route idRoute
