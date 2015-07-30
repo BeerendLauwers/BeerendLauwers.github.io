@@ -2,3 +2,13 @@
     text-align: center;
     font-style: italic;
 }
+
+div.image.small .figure img {
+    max-width: 100%;
+}
+
+.figure .caption {
+  font-style: italic;
+  margin-top: 0;
+  text-align: center;
+}
