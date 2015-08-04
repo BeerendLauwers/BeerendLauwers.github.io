@@ -2,6 +2,10 @@
 title: Getting Hakyll up and running on Windows
 ---
 
+<div class="note">
+This is now *way* easier with `stack`. [Here's a tutorial.](/posts/2015-08-04-hakyll-with-stack.html)
+</div>
+
 Phew. That took a lot longer than expected.
 
 ## Installing GHC on Windows
