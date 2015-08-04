@@ -77,9 +77,9 @@ Ok, now to refresh the web page of the docker instance:
 
 Seems to work!
 
-## Windows install of `pandoc` + copy of the Git repo of revealJS
+## Windows install of `pandoc` + copy of the Git repo of reveal.js
 
-Wow, what a hassle. Can't I just use the static version of revealJS? 
+Wow, what a hassle. Can't I just use the static version of reveal.js? 
 
 [Release overview](https://github.com/hakimel/reveal.js/releases) -> zip -> put `index.md` in it -> compile!
 
