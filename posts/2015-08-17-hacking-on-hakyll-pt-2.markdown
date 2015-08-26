@@ -50,8 +50,6 @@ In the `tags.html` template, that field is iterated over:
 </ul>
 ```
 
-The type of `listField` is: `listField :: String -> Context a -> Compiler [Item a] -> Context b`.
-
 So, I have two questions: 
 
 1. How can I manually construct a `listField` without a file path, just from data?
@@ -60,6 +58,8 @@ So, I have two questions:
 ## Type safari
 
 ### `Context a`
+
+The type of `listField` is: `listField :: String -> Context a -> Compiler [Item a] -> Context b`.
 
 Ok, so I know what a `String` is, but what is a `Context a`?
 
