@@ -100,3 +100,4 @@ postCtx = relativizeUrl <> defaultContext
 ```
 
 Calling `$relativizeUrl("/a/b/c/d")$` then results in a relativized URL in the compiled document.
+This function is available in my [`hakyll-extra`](https://github.com/beerendlauwers/hakyll-extra) package on Github.
