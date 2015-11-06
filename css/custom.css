@@ -27,3 +27,7 @@ div.image.small .figure img {
     content: "Note:";
     font-style:italic;
 }
+
+.figure {
+    text-align: center;
+}
