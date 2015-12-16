@@ -1,3 +1,8 @@
+@font-face {
+  font-family: "geomanist";
+  src: url('../fonts/geomanist-regular.otf');
+}
+
 .waiver {
     text-align: center;
     font-style: italic;
