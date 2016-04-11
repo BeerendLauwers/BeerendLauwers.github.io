@@ -86,6 +86,45 @@ in the appropriate location (at the start, after any `String` declarations).
 
 The [aforementioned blog post](http://www.guru99.com/maven-jenkins-with-selenium-complete-tutorial.html) also covers this.
 
+## Accessing the TestNG report via Jenkins
+
+You'll need the [HTML Publisher Plugin](https://wiki.jenkins-ci.org/display/JENKINS/HTML+Publisher+Plugin) for this.
+After installing it, go to your job configuration page and add it as a post-build action:
+
+<div class="image small">
+![Selecting "Publish HTML reports" as a post-build action.](/images/selenium/post-build-action.png)
+</div>
+
+Click the "Add" button to add a report. You'll see the following fields:
+
+<div class="image small">
+![The available fields for publishing a report.](/images/selenium/publish-html-report.png)
+</div>
+
+* **HTML directory to archive**: This is a path relative to your workspace. 
+  In my case, I used `surefire-reports` as the reporter.
+  To find out this directory, I SSHed to the Jenkins server and rummaged around until I found it:
+  <div class="image small">![Discovering where the Jenkins workspace was at.](/images/selenium/jenkins-workspace.png)</div>
+  
+* **Index page[s]**: The page that will be served as the index.
+
+* **Report title**: The title of the report as it will be shown in Jenkins.
+
+To view the checkboxes, you need to press the "Publishing options..." button (not visible in the screenshot).
+
+* **Keep past HTML reports**: You will definitely want this. Otherwise, only the latest report will always be kept.
+
+* **Always link to last build**: There's also a link to a build on the job level. I think this just redirects that link to the latest build.
+
+* **Allow missing report**: Leaving this unchecked makes the build fail if the publishing process fails.
+
+When a build finishes, you'll now get a link to the report on the left-hand side:
+
+<div class="image small">
+![The newly-available report.](/images/selenium/testng-link.png  )
+</div>
+
+
 
 ## Done!
 
