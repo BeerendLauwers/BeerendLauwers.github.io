@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Building Hakyll with Stack</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/custom.css" />
+        <link rel="stylesheet" type="text/css" href="../css/font-awesome.min.css">
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-64277210-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </head>
+    <body>
+        <div class="page-wrap">
+            <h1>Building Hakyll with Stack</h1>
+<p class="author">By <a href="http://beerendlauwers.be/">Beerend Lauwers</a></p>
+
+<p><a href="https://github.com/commercialhaskell/stack">Stack</a> is <em>really</em> useful to get single packages up and running. Here’s a short tutorial on how to go from absolutely nothing to a <code>site.exe</code> file that can build your site contents.</p>
+<h2 id="get-stack">Get <code>stack</code></h2>
+<p>First, I downloaded and installed <code>stack</code>, which was at <a href="https://github.com/commercialhaskell/stack/releases/tag/v0.1.2.0">0.1.2.0</a> at the time of writing (for Windows).</p>
+<h2 id="make-a-new-project">Make a new project</h2>
+<p>Then, I went to a folder in the command line and typed <code>stack new</code>:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">NOTE</span>: Currently stack new functionality is very rudimentary
+<span class="kw">There</span> are plans to make this feature more useful in the future
+<span class="kw">For</span> more information, see: https://github.com/commercialhaskell/stack/issues/137
+
+<span class="kw">For</span> now, we<span class="st">'ll just be generating a basic project structure in your current directory</span>
+
+<span class="st">Writing: LICENSE</span>
+<span class="st">Writing: Setup.hs</span>
+<span class="st">Writing: app\Main.hs</span>
+<span class="st">Writing: new-template.cabal</span>
+<span class="st">Writing: src\Lib.hs</span>
+<span class="st">Writing: test\Spec.hs</span>
+<span class="st">Writing default config file to: D:\Experiments\test\stack.yaml</span>
+<span class="st">Basing on cabal files:</span>
+<span class="st">- D:\Experiments\test\new-template.cabal</span>
+
+<span class="st">Checking against build plan lts-2.13</span>
+<span class="st">Selected resolver: lts-2.13</span>
+<span class="st">Wrote project config to: D:\Experiments\test\stack.yaml</span></code></pre></div>
+<h2 id="downloading-hakyll">Downloading Hakyll</h2>
+<p>Then, we want to install <a href="http://jaspervdj.be/hakyll/">Hakyll</a> with <code>stack install hakyll</code>:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">While</span> constructing the BuildPlan the following exceptions were encountered:
+
+<span class="kw">--</span>  While attempting to add dependency,
+    <span class="kw">Could</span> not find package Win32-notify in known packages
+
+<span class="kw">--</span>  Failure when adding dependencies:
+      <span class="kw">Win32-notify</span>: needed (<span class="kw">&gt;</span>=0.3), <span class="kw">latest</span> is 0.3.0.1, but not present in build plan
+    <span class="kw">needed</span> for package: fsnotify-0.1.0.3
+
+<span class="kw">--</span>  Failure when adding dependencies:
+      <span class="kw">fsnotify</span>: needed (<span class="kw">&gt;</span>=0.1 <span class="kw">&amp;&amp;</span> <span class="kw">&lt;0.2</span>), <span class="kw">latest</span> is 0.2.1, but couldn<span class="st">'t resolve its dependencies</span>
+<span class="st">    needed for package: hakyll-4.6.9.0</span>
+
+<span class="st">Recommended action: try adding the following to your extra-deps in D:\Experiments\test\stack.yaml</span>
+<span class="st">- Win32-notify-0.3.0.1</span>
+
+<span class="st">You may also want to try the '</span>stack solver<span class="st">' command</span></code></pre></div>
+<p>The most important part is down below:</p>
+<blockquote>
+<p>Recommended action: try adding the following to your extra-deps in D:.yaml</p>
+<p>- Win32-notify-0.3.0.1</p>
+</blockquote>
+<p>Let’s do that:</p>
+<div class="sourceCode"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span class="fu">flags:</span> <span class="kw">{}</span>
+<span class="fu">packages:</span>
+<span class="kw">-</span> <span class="st">'.'</span>
+<span class="fu">extra-deps:</span>
+<span class="kw">-</span> Win32-notify-0.3.0.1
+<span class="fu">resolver:</span> lts-2.13</code></pre></div>
+<p>Let’s do <code>stack install hakyll</code> again:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">D</span>:\Experiments\test<span class="kw">&gt;</span>stack install hakyll
+<span class="kw">Win32-notify-0.3.0.1</span>: configure
+<span class="kw">Win32-notify-0.3.0.1</span>: build
+<span class="kw">Win32-notify-0.3.0.1</span>: install
+<span class="kw">fsnotify-0.1.0.3</span>: configure
+<span class="kw">fsnotify-0.1.0.3</span>: build
+<span class="kw">fsnotify-0.1.0.3</span>: install
+<span class="kw">hakyll-4.6.9.0</span>: configure
+<span class="kw">hakyll-4.6.9.0</span>: build
+<span class="kw">hakyll-4.6.9.0</span>: install
+<span class="kw">Completed</span> all 3 actions.
+<span class="kw">Installation</span> path C:\Users\blauwers\AppData\Roaming\local\bin<span class="dt">\ </span>not found in PATH
+ <span class="kw">environment</span> variable
+<span class="kw">Copying</span> from D:\Experiments\test\.stack-work\install\x86_64-windows\lts-2.13\7.8
+<span class="kw">.4</span>\bin\hakyll-init.exe to C:\Users\blauwers\AppData\Roaming\local\bin\hakyll-ini
+<span class="kw">t.exe</span>
+
+<span class="kw">Installed</span> executables to C:\Users\blauwers\AppData\Roaming\local\bin\:
+<span class="kw">-</span> hakyll-init.exe</code></pre></div>
+<p><em><strong>Note:</strong> You will probably have a far longer list than this, because stack caches its packages.</em> <em>It took around 30 minutes on my computer to get to that last line the first time.</em></p>
+<h2 id="bootstrapping-hakyll">Bootstrapping Hakyll</h2>
+<p>Copy <code>hakyll-init.exe</code> from that folder into your base folder, like so:</p>
+<div class="image small">
+<div class="figure">
+<img src="../images/stack/hakyll.png" alt="Location for hakyll-init.exe" />
+<p class="caption">Location for <code>hakyll-init.exe</code></p>
+</div>
+</div>
+<p>Now, run it:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">D</span>:\Experiments\test<span class="kw">&gt;</span>hakyll-init.exe .
+<span class="kw">Creating</span> .\templates\post.html
+<span class="kw">Creating</span> .\templates\post-list.html
+<span class="kw">Creating</span> .\templates\default.html
+<span class="kw">Creating</span> .\templates\archive.html
+<span class="kw">Creating</span> .\site.hs
+<span class="kw">Creating</span> .\posts\2012-12-07-tu-quoque.markdown
+<span class="kw">Creating</span> .\posts\2012-11-28-carpe-diem.markdown
+<span class="kw">Creating</span> .\posts\2012-10-07-rosa-rosa-rosam.markdown
+<span class="kw">Creating</span> .\posts\2012-08-12-spqr.markdown
+<span class="kw">Creating</span> .\index.html
+<span class="kw">Creating</span> .\images\haskell-logo.png
+<span class="kw">Creating</span> .\css\default.css
+<span class="kw">Creating</span> .\contact.markdown
+<span class="kw">Creating</span> .\about.rst
+<span class="kw">Creating</span> .\test.cabal</code></pre></div>
+<h2 id="merging-the-.cabal-files">Merging the <code>.cabal</code> files</h2>
+<p>Time for some small bookkeeping. Open up <code>test.cabal</code> and copy over this block into <code>new-template.cabal</code>:</p>
+<pre><code>executable site
+  main-is:          site.hs
+  build-depends:    base == 4.*
+                  , hakyll == 4.6.*
+  ghc-options:      -threaded
+  default-language: Haskell2010</code></pre>
+<p>You might also want to remove the stack boilerplate build targets (<code>library</code>, <code>executable new-template-exe</code>, <code>test-suite new-template-test</code>).</p>
+<p>Rename the package name as well:</p>
+<pre><code>name:                test</code></pre>
+<p>Rename <code>new-template.cabal</code> to <code>test.cabal</code> (remove the original one) and we’re done.</p>
+<h2 id="building-hakyll">Building Hakyll</h2>
+<p>With <code>stack build</code>:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">D</span>:\Experiments\test<span class="kw">&gt;</span>stack build
+<span class="kw">test-0.1.0.0</span>: configure
+<span class="kw">Configuring</span> test-0.1.0.0...
+<span class="kw">test-0.1.0.0</span>: build
+<span class="kw">Building</span> test-0.1.0.0...
+<span class="kw">Preprocessing</span> executable <span class="st">'site'</span> for test-0.1.0.0...
+[<span class="kw">1</span> of 1] Compiling Main             ( site.hs, .stack-work\dist\x86_64-windows\Cabal-1.18.1.5\build\site\site-tmp\Main.o )
+<span class="kw">Linking</span> .stack-work\dist\x86_64-windows\Cabal-1.18.1.5\build\site\site.exe ...
+<span class="kw">test-0.1.0.0</span>: install
+<span class="kw">Installing</span> executable(s) <span class="kw">in</span>
+<span class="kw">D</span>:\Experiments\test\.stack-work\install\x86_64-windows\lts-2.13\7.8.4\bin</code></pre></div>
+<p>Copy over the <code>site.exe</code> file into your base directory, just like you did with <code>hakyll-init.exe</code>.</p>
+<h2 id="using-hakyll">Using Hakyll</h2>
+<p>Now, you can use <code>site.exe</code> to generate your site:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">D</span>:\Experiments\test<span class="kw">&gt;</span>site.exe build
+<span class="kw">Initialising...</span>
+  <span class="kw">Creating</span> store...
+  <span class="kw">Creating</span> provider...
+  <span class="kw">Running</span> rules...
+<span class="kw">Checking</span> for out-of-date items
+<span class="kw">Compiling</span>
+  <span class="kw">updated</span> templates/default.html
+  <span class="kw">updated</span> about.rst
+  <span class="kw">updated</span> templates/post.html
+  <span class="kw">updated</span> posts/2012-08-12-spqr.markdown
+  <span class="kw">updated</span> posts/2012-10-07-rosa-rosa-rosam.markdown
+  <span class="kw">updated</span> posts/2012-11-28-carpe-diem.markdown
+  <span class="kw">updated</span> posts/2012-12-07-tu-quoque.markdown
+  <span class="kw">updated</span> templates/archive.html
+  <span class="kw">updated</span> templates/post-list.html
+  <span class="kw">updated</span> archive.html
+  <span class="kw">updated</span> contact.markdown
+  <span class="kw">updated</span> css/default.css
+  <span class="kw">updated</span> images/haskell-logo.png
+  <span class="kw">updated</span> index.html
+<span class="kw">Success</span></code></pre></div>
+<h3 id="addendum-full-.cabal-and-.yaml-files">Addendum: Full <code>.cabal</code> and <code>.yaml</code> files</h3>
+<p><code>.cabal</code>:</p>
+<pre><code>name:                test
+version:             0.1.0.0
+synopsis:            Initial project template from stack
+description:         Please see README.md
+homepage:            http://github.com/name/project
+license:             BSD3
+license-file:        LICENSE
+author:              Your name here
+maintainer:          your.address@example.com
+-- copyright:           
+category:            Web
+build-type:          Simple
+-- extra-source-files:  
+cabal-version:       &gt;=1.10
+
+executable site
+  main-is:          site.hs
+  build-depends:    base == 4.*
+                  , hakyll == 4.6.*
+  ghc-options:      -threaded
+  default-language: Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/name/project</code></pre>
+<p><code>.yaml</code>:</p>
+<div class="sourceCode"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span class="fu">flags:</span> <span class="kw">{}</span>
+<span class="fu">packages:</span>
+<span class="kw">-</span> <span class="st">'.'</span>
+<span class="fu">extra-deps:</span>
+<span class="kw">-</span> Win32-notify-0.3.0.1
+<span class="fu">resolver:</span> lts-2.13</code></pre></div>
+
+<footer>
+  &copy; August  4, 2015 Beerend Lauwers &lt;beerendlauwers@gmail.com&gt;
+</footer>
+
+        </div>
+        <div class="page-wrap" id="footer">
+            Site automatically generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

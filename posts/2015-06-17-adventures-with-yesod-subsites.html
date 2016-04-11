@@ -1,0 +1,571 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>An adventure with Yesod subsites</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/custom.css" />
+        <link rel="stylesheet" type="text/css" href="../css/font-awesome.min.css">
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-64277210-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </head>
+    <body>
+        <div class="page-wrap">
+            <h1>An adventure with Yesod subsites</h1>
+<p class="author">By <a href="http://beerendlauwers.be/">Beerend Lauwers</a></p>
+
+<h2 id="preface">Preface</h2>
+<p>This is a braindump during my development of a Yesod subsite a month or two ago. It was surprisingly hard to find decent examples that actually worked, and many of the extremely obscure error messages were hard to solve. <a href="https://github.com/beerendlauwers/haskell-datasource">The source code can be found here.</a> So, I hope that someone finds this useful.</p>
+<h2 id="the-braindump">The braindump</h2>
+<h3 id="setting-things-up">Setting things up</h3>
+<p>First off, ensure your IDE automatically changes tabs to spaces. 1 tab = 4 spaces.</p>
+<p>Second, I googled “yesod subsite” and got this: <a href="http://www.yesodweb.com/book/creating-a-subsite" class="uri">http://www.yesodweb.com/book/creating-a-subsite</a>.</p>
+<p>Where do I place the files? No idea. Let’s google a little more. Nope, no results. I guess I’ll place the new subsite <code>HelloSub.hs</code> in my newly scaffolded site.</p>
+<p><code>HelloSub.Data</code> goes in <code>HelloSub/Data.</code></p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">HelloSub.hs<span class="fu">:</span><span class="dv">16</span><span class="fu">:</span><span class="dv">67</span><span class="fu">:</span> <span class="dt">Not</span> <span class="kw">in</span> scope<span class="fu">:</span> <span class="kw">type</span> constructor or <span class="kw">class</span> <span class="ot">`IO'</span></code></pre></div>
+<p>Off to a good start.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">Prelude</span> (<span class="dt">IO</span>)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">HelloSub.hs<span class="fu">:</span><span class="dv">17</span><span class="fu">:</span><span class="dv">20</span><span class="fu">:</span> <span class="dt">Not</span> <span class="kw">in</span> scope<span class="fu">:</span> <span class="ot">`$'</span></code></pre></div>
+<p>Nope. Let’s try:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">Prelude</span> (<span class="dt">IO</span>,($))</code></pre></div>
+<p>Ok, that compiles.</p>
+<p>The example seems to overwrite the routes. I guess I’ll copy-paste that into the route config file. Would be nice if there was a tutorial that started from the scaffolded site.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">Application.hs<span class="fu">:</span><span class="dv">60</span><span class="fu">:</span><span class="dv">36</span><span class="fu">:</span> <span class="dt">Warning</span><span class="fu">:</span>
+    <span class="dt">Fields</span> <span class="kw">of</span> <span class="ot">`App' not initialised: getHelloSub</span>
+<span class="ot">    In the expression: App {..}</span>
+<span class="ot">    In an equation for `</span>mkFoundation'<span class="fu">:</span>
+        mkFoundation appConnPool <span class="fu">=</span> <span class="dt">App</span> {<span class="fu">..</span>}
+    <span class="dt">In</span> the expression<span class="fu">:</span>
+      <span class="kw">do</span> { appHttpManager <span class="ot">&lt;-</span> newManager;
+           appLogger <span class="ot">&lt;-</span> newStdoutLoggerSet defaultBufSize <span class="fu">&gt;&gt;=</span> makeYesodLogger;
+           appStatic <span class="ot">&lt;-</span> (<span class="kw">if</span> appMutableStatic appSettings <span class="kw">then</span>
+                             staticDevel
+                         <span class="kw">else</span>
+                             static)
+                          (appStaticDir appSettings);
+           <span class="kw">let</span> mkFoundation appConnPool <span class="fu">=</span> <span class="fu">...</span>
+               tempFoundation
+                 <span class="fu">=</span> mkFoundation <span class="fu">$</span> error <span class="st">&quot;connPool forced in tempFoundation&quot;</span>
+               <span class="fu">....</span>;
+           <span class="fu">....</span> }</code></pre></div>
+<p>Man, I hope that doesn’t break things.</p>
+<pre><code>ghc: C:\yesod\datasource\dist\build\HSdatasource-0.0.0.o: unknown symbol `datasourcezm0zi0zi0_HelloSub_zdfYesodSubDispatchHelloSubHandlerT_closure'</code></pre>
+<p>Man, it broke things. I guess I’ll google “yesod unknown symbol”. Result: <a href="http://stackoverflow.com/questions/11485555/build-failure-during-yesod-devel" class="uri">http://stackoverflow.com/questions/11485555/build-failure-during-yesod-devel</a></p>
+<p>Hmm:</p>
+<blockquote>
+<p>“Unknown symbol errors when running yesod devel are often the result of failing to include a module in exposed-modules or other-modules in your application’s cabal file.”</p>
+</blockquote>
+<p>Guess I’ll add the modules to the .cabal file?</p>
+<p>Woo, that worked!</p>
+<p>Ok, let’s actually start development now.</p>
+<h3 id="hacking-together-a-form">Hacking together a form</h3>
+<p>Let’s try out some form input. <a href="http://www.yesodweb.com/book/forms" class="uri">http://www.yesodweb.com/book/forms</a></p>
+<p>Copy over a whole bunch of stuff.</p>
+<p>This is pretty straightforward, but I haven’t looked at the compilation log yet :D</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">HelloSub</span>\Data.hs<span class="fu">:</span><span class="dv">18</span><span class="fu">:</span><span class="dv">31</span><span class="fu">:</span>
+    <span class="dt">Not</span> <span class="kw">in</span> scope<span class="fu">:</span> <span class="kw">type</span> constructor or <span class="kw">class</span> <span class="ot">`Int'</span>
+<span class="ot">    Perhaps you meant `</span><span class="dt">Ints'</span> (imported from <span class="dt">Yesod</span>)
+
+<span class="dt">HelloSub</span>\Data.hs<span class="fu">:</span><span class="dv">19</span><span class="fu">:</span><span class="dv">32</span><span class="fu">:</span>
+    <span class="dt">Not</span> <span class="kw">in</span> scope<span class="fu">:</span> <span class="kw">type</span> constructor or <span class="kw">class</span> <span class="ot">`Int'</span>
+<span class="ot">    Perhaps you meant `</span><span class="dt">Ints'</span> (imported from <span class="dt">Yesod</span>)
+
+<span class="dt">HelloSub</span>\Data.hs<span class="fu">:</span><span class="dv">21</span><span class="fu">:</span><span class="dv">12</span><span class="fu">:</span>
+    <span class="dt">Not</span> <span class="kw">in</span> scope<span class="fu">:</span> <span class="kw">type</span> constructor or <span class="kw">class</span> <span class="ot">`Show'</span></code></pre></div>
+<p>Man, this just gets better and better. Doesn’t Yesod use <code>classy-prelude</code>?</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">ClassyPrelude</span></code></pre></div>
+<p>Ok, fixed.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">HelloSub.hs<span class="fu">:</span><span class="dv">25</span><span class="fu">:</span><span class="dv">25</span><span class="fu">:</span>
+    <span class="dt">Not</span> <span class="kw">in</span> scope<span class="fu">:</span> <span class="kw">type</span> constructor or <span class="kw">class</span> <span class="ot">`Handler'</span>
+<span class="ot">    Perhaps you meant `</span><span class="dt">HandlerT'</span> (imported from <span class="dt">Yesod</span>)</code></pre></div>
+<p>You tell me!</p>
+<pre><code>s/Handler/HandlerT</code></pre>
+<p>That works.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">HelloSub.hs<span class="fu">:</span><span class="dv">19</span><span class="fu">:</span><span class="dv">26</span><span class="fu">:</span>
+    <span class="dt">Not</span> <span class="kw">in</span> scope<span class="fu">:</span> <span class="kw">data</span> constructor <span class="ot">`DataSourceInputR'</span>
+<span class="ot">    Perhaps you meant `</span><span class="dt">DataSourceInput'</span> (imported from <span class="dt">HelloSub.Data</span>)</code></pre></div>
+<p>I already forgot why this was the case.</p>
+<p>Oh right, the <code>mkYesodSubData</code> thing.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">mkYesodSubData <span class="st">&quot;HelloSub&quot;</span> [parseRoutes<span class="fu">|</span>
+<span class="fu">/</span> <span class="dt">SubHomeR</span> <span class="dt">GET</span>
+<span class="fu">/</span>datasource <span class="dt">DataSourceInputR</span> <span class="dt">POST</span>
+<span class="fu">|</span>]</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">HelloSub.hs<span class="fu">:</span><span class="dv">29</span><span class="fu">:</span><span class="dv">58</span><span class="fu">:</span> <span class="dt">Not</span> <span class="kw">in</span> scope<span class="fu">:</span> <span class="ot">`show'</span></code></pre></div>
+<p>DAMMIT</p>
+<p>Replace import <code>Prelude (IO,($))</code> with <code>ClassyPrelude</code>.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">HelloSub.hs<span class="fu">:</span><span class="dv">25</span><span class="fu">:</span><span class="dv">25</span><span class="fu">:</span>
+    <span class="dt">Expecting</span> two more arguments to <span class="ot">`HandlerT Html'</span>
+<span class="ot">    Expected a type, but `</span><span class="dt">HandlerT</span> <span class="dt">Html'</span> has kind <span class="ot">`(* -&gt; *) -&gt; * -&gt; *'</span>
+<span class="ot">    In the type signature for `</span>postDataSourceInputR'<span class="fu">:</span>
+<span class="ot">      postDataSourceInputR ::</span> <span class="dt">HandlerT</span> <span class="dt">Html</span></code></pre></div>
+<p>Woo, a kind error, something I can probably fix!</p>
+<p>currently: <code>postDataSourceInputR :: HandlerT Html</code></p>
+<p>I guess I’ll want something like the example HelloSub thing: <code>getSubHomeR :: Yesod master =&gt; HandlerT HelloSub (HandlerT master IO) Html</code></p>
+<p>Let’s do that.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">HelloSub.hs<span class="fu">:</span><span class="dv">30</span><span class="fu">:</span><span class="dv">14</span><span class="fu">:</span>
+    <span class="dt">Couldn't</span> match <span class="kw">type</span> <span class="ot">`IO' with `</span><span class="dt">HandlerT</span> master <span class="dt">IO'</span>
+    <span class="dt">Expected</span> <span class="kw">type</span><span class="fu">:</span> <span class="dt">HandlerT</span> <span class="dt">HelloSub</span> (<span class="dt">HandlerT</span> master <span class="dt">IO</span>) <span class="dt">Html</span>
+      <span class="dt">Actual</span> <span class="kw">type</span><span class="fu">:</span> <span class="dt">HandlerT</span> <span class="dt">HelloSub</span> <span class="dt">IO</span> <span class="dt">Html</span>
+    <span class="dt">Relevant</span> bindings include
+<span class="ot">      postDataSourceInputR ::</span> <span class="dt">HandlerT</span> <span class="dt">HelloSub</span> (<span class="dt">HandlerT</span> master <span class="dt">IO</span>) <span class="dt">Html</span>
+        (bound at HelloSub.hs<span class="fu">:</span><span class="dv">26</span><span class="fu">:</span><span class="dv">1</span>)
+    <span class="dt">In</span> the expression<span class="fu">:</span>
+      defaultLayout
+        (<span class="kw">do</span> { (asWidgetT <span class="fu">GHC.Base..</span> toWidget)
+                ((blaze<span class="fu">-</span>markup<span class="fu">-</span><span class="fl">0.7</span><span class="fu">.</span><span class="fl">0.2</span><span class="fu">:</span>Text.Blaze.Internal.preEscapedText
+                  <span class="fu">GHC.Base..</span> Data.Text.pack)
+                   <span class="st">&quot;&lt;p&gt;Invalid input, let's try again.&lt;/p&gt;\n\</span>
+<span class="st">                   \&lt;form method=\&quot;post\&quot; action=\&quot;&quot;</span>);
+              (getUrlRenderParams
+               <span class="fu">&gt;&gt;=</span>
+                 (\ urender_antS
+                    <span class="ot">-&gt;</span> (asWidgetT <span class="fu">GHC.Base..</span> toWidget)
+                         (toHtml (\ u_antT <span class="ot">-&gt;</span> urender_antS u_antT [] <span class="dt">DataSourceInputR</span>))));
+              (asWidgetT <span class="fu">GHC.Base..</span> toWidget)
+                ((blaze<span class="fu">-</span>markup<span class="fu">-</span><span class="fl">0.7</span><span class="fu">.</span><span class="fl">0.2</span><span class="fu">:</span>Text.Blaze.Internal.preEscapedText
+                  <span class="fu">GHC.Base..</span> Data.Text.pack)
+                   <span class="st">&quot;\&quot; enctype=\&quot;&quot;</span>);
+              (asWidgetT <span class="fu">GHC.Base..</span> toWidget) (toHtml enctype);
+              (asWidgetT <span class="fu">GHC.Base..</span> toWidget)
+                ((blaze<span class="fu">-</span>markup<span class="fu">-</span><span class="fl">0.7</span><span class="fu">.</span><span class="fl">0.2</span><span class="fu">:</span>Text.Blaze.Internal.preEscapedText
+                  <span class="fu">GHC.Base..</span> Data.Text.pack)
+                   <span class="st">&quot;\&quot;&gt;&quot;</span>);
+              <span class="fu">....</span> })
+    <span class="dt">In</span> a <span class="kw">case</span> alternative<span class="fu">:</span>
+        _ <span class="ot">-&gt;</span> defaultLayout
+               (<span class="kw">do</span> { (asWidgetT <span class="fu">GHC.Base..</span> toWidget)
+                       ((blaze<span class="fu">-</span>markup<span class="fu">-</span><span class="fl">0.7</span><span class="fu">.</span><span class="fl">0.2</span><span class="fu">:</span>Text.Blaze.Internal.preEscapedText
+
+                         <span class="fu">GHC.Base..</span> Data.Text.pack)
+                          <span class="st">&quot;&lt;p&gt;Invalid input, let's try again.&lt;/p&gt;\n\</span>
+<span class="st">                          \&lt;form method=\&quot;post\&quot; action=\&quot;&quot;</span>);
+                     (getUrlRenderParams
+                      <span class="fu">&gt;&gt;=</span>
+                        (\ urender_antS
+                           <span class="ot">-&gt;</span> (asWidgetT <span class="fu">GHC.Base..</span> toWidget)
+                                (toHtml (\ u_antT <span class="ot">-&gt;</span> urender_antS u_antT [] <span class="dt">DataSourceInputR</span>))));
+                     (asWidgetT <span class="fu">GHC.Base..</span> toWidget)
+                       ((blaze<span class="fu">-</span>markup<span class="fu">-</span><span class="fl">0.7</span><span class="fu">.</span><span class="fl">0.2</span><span class="fu">:</span>Text.Blaze.Internal.preEscapedText
+
+                         <span class="fu">GHC.Base..</span> Data.Text.pack)
+                          <span class="st">&quot;\&quot; enctype=\&quot;&quot;</span>);
+                     (asWidgetT <span class="fu">GHC.Base..</span> toWidget) (toHtml enctype);</code></pre></div>
+<p>JESUS</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"> <span class="dt">Couldn't</span> match <span class="kw">type</span> <span class="ot">`IO' with `</span><span class="dt">HandlerT</span> master <span class="dt">IO'</span>
+ <span class="dt">Expected</span> <span class="kw">type</span><span class="fu">:</span> <span class="dt">HandlerT</span> <span class="dt">HelloSub</span> (<span class="dt">HandlerT</span> master <span class="dt">IO</span>) <span class="dt">Html</span></code></pre></div>
+<p>Oh ok</p>
+<p>Let’s fix that:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">postDataSourceInputR ::</span> <span class="dt">HandlerT</span> <span class="dt">HelloSub</span> <span class="dt">IO</span> <span class="dt">Html</span></code></pre></div>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"> HelloSub.hs<span class="fu">:</span><span class="dv">39</span><span class="fu">:</span><span class="dv">26</span><span class="fu">:</span>
+    <span class="dt">Couldn't</span> match <span class="kw">type</span> <span class="ot">`IO' with `</span><span class="dt">HandlerT</span> parent1 <span class="dt">IO'</span>
+    <span class="dt">Expected</span> <span class="kw">type</span><span class="fu">:</span> <span class="dt">HandlerT</span> <span class="dt">HelloSub</span> (<span class="dt">HandlerT</span> parent1 <span class="dt">IO</span>) <span class="dt">Html</span>
+      <span class="dt">Actual</span> <span class="kw">type</span><span class="fu">:</span> <span class="dt">HandlerT</span> <span class="dt">HelloSub</span> <span class="dt">IO</span> <span class="dt">Html</span>
+    <span class="dt">Relevant</span> bindings include
+<span class="ot">      env6990_ansz ::</span> <span class="dt">Yesod.Core.Types.YesodSubRunnerEnv</span>
+                        <span class="dt">HelloSub</span> parent1 (<span class="dt">HandlerT</span> parent1 <span class="dt">IO</span>)
+        (bound at HelloSub.hs<span class="fu">:</span><span class="dv">39</span><span class="fu">:</span><span class="dv">26</span>)
+<span class="ot">      inner ::</span> <span class="dt">Yesod.Core.Types.YesodSubRunnerEnv</span>
+                 <span class="dt">HelloSub</span> parent1 (<span class="dt">HandlerT</span> parent1 <span class="dt">IO</span>)
+               <span class="ot">-&gt;</span> wai<span class="fu">-</span><span class="fl">3.0</span><span class="fu">.</span><span class="fl">2.3</span><span class="fu">:</span><span class="dt">Network.Wai.Internal.Request</span>
+               <span class="ot">-&gt;</span> (wai<span class="fu">-</span><span class="fl">3.0</span><span class="fu">.</span><span class="fl">2.3</span><span class="fu">:</span><span class="dt">Network.Wai.Internal.Response</span>
+                   <span class="ot">-&gt;</span> <span class="dt">IO</span> wai<span class="fu">-</span><span class="fl">3.0</span><span class="fu">.</span><span class="fl">2.3</span><span class="fu">:</span><span class="dt">Network.Wai.Internal.ResponseReceived</span>)
+               <span class="ot">-&gt;</span> <span class="dt">IO</span> wai<span class="fu">-</span><span class="fl">3.0</span><span class="fu">.</span><span class="fl">2.3</span><span class="fu">:</span><span class="dt">Network.Wai.Internal.ResponseReceived</span>
+        (bound at HelloSub.hs<span class="fu">:</span><span class="dv">39</span><span class="fu">:</span><span class="dv">26</span>)
+    <span class="dt">In</span> the first argument <span class="kw">of</span> <span class="ot">`yesod-core-1.4.8.3:Yesod.Core.Class.Dispatch.subHe</span>
+<span class="ot">lper</span>
+<span class="ot">                              GHC.Base.. (fmap toTypedContent)', namely</span>
+<span class="ot">      `</span>postDataSourceInputR'
+    <span class="dt">In</span> the expression<span class="fu">:</span>
+      (yesod<span class="fu">-</span>core<span class="fu">-</span><span class="fl">1.4</span><span class="fu">.</span><span class="fl">8.3</span><span class="fu">:</span>Yesod.Core.Class.Dispatch.subHelper
+       <span class="fu">GHC.Base..</span> (fmap toTypedContent))
+        postDataSourceInputR
+        env6990_ansz
+        (<span class="dt">Just</span> <span class="dt">DataSourceInputR</span>)
+        req6990_ansA</code></pre></div>
+<p>Damn, this is in Template Haskell.</p>
+<p>I’ll google for <code>YesodSubDispatch</code>.</p>
+<p><a href="http://www.yesodweb.com/blog/2013/03/big-subsite-rewrite" class="uri">http://www.yesodweb.com/blog/2013/03/big-subsite-rewrite</a></p>
+<p>Ooh, examples.</p>
+<p>Ok, so I guess I’ll go back to <code>Yesod master =&gt; HandlerT HelloSub (HandlerT master IO) Html</code>.</p>
+<p>Ah, it’s a type error. I’ll replace <code>defaultLayout</code> with <code>lift $ defaultLayout</code> in the handlers.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">HelloSub.hs<span class="fu">:</span><span class="dv">19</span><span class="fu">:</span><span class="dv">33</span><span class="fu">:</span>
+    <span class="dt">Could</span> not deduce (master <span class="fu">~</span> <span class="dt">HelloSub</span>)
+    from the context (<span class="dt">Yesod</span> master)
+      bound by the <span class="kw">type</span> signature for
+<span class="ot">                 getSubHomeR ::</span> <span class="dt">Yesod</span> master <span class="ot">=&gt;</span>
+                                <span class="dt">HandlerT</span> <span class="dt">HelloSub</span> (<span class="dt">HandlerT</span> master <span class="dt">IO</span>) <span class="dt">Html</span>
+      at HelloSub.hs<span class="fu">:</span><span class="dv">16</span><span class="fu">:</span><span class="dv">16</span><span class="fu">-</span><span class="dv">74</span>
+      <span class="ot">`master' is a rigid type variable bound by</span>
+<span class="ot">               the type signature for</span>
+<span class="ot">                 getSubHomeR :: Yesod master =&gt;</span>
+<span class="ot">                                HandlerT HelloSub (HandlerT master IO) Html</span>
+<span class="ot">               at HelloSub.hs:16:16</span>
+<span class="ot">    Expected type: WidgetT</span>
+<span class="ot">                     master IO (Route HelloSub -&gt; [(Text, Text)] -&gt; Text)</span>
+<span class="ot">      Actual type: WidgetT</span>
+<span class="ot">                     master</span>
+<span class="ot">                     IO</span>
+<span class="ot">                     (Route (HandlerSite (WidgetT master IO)) -&gt; [(Text, Text)] -&gt; Text)</span>
+<span class="ot">    Relevant bindings include</span>
+<span class="ot">      getSubHomeR :: HandlerT HelloSub (HandlerT master IO) Html</span>
+<span class="ot">        (bound at HelloSub.hs:17:1)</span>
+<span class="ot">    In the first argument of `</span>(<span class="fu">&gt;&gt;=</span>)<span class="ch">', namely `getUrlRenderParams'</span>
+    <span class="dt">In</span> a stmt <span class="kw">of</span> a <span class="ch">'do'</span> block<span class="fu">:</span>
+      (getUrlRenderParams
+       <span class="fu">&gt;&gt;=</span>
+         (\ urender_aneD
+            <span class="ot">-&gt;</span> (asWidgetT <span class="fu">GHC.Base..</span> toWidget)
+                 (toHtml (\ u_aneE <span class="ot">-&gt;</span> urender_aneD u_aneE [] <span class="dt">DataSourceInputR</span>)))
+)
+
+HelloSub.hs<span class="fu">:</span><span class="dv">31</span><span class="fu">:</span><span class="dv">22</span><span class="fu">:</span>
+    <span class="dt">Could</span> not deduce (master <span class="fu">~</span> <span class="dt">HelloSub</span>)
+    from the context (<span class="dt">Yesod</span> master)
+      bound by the <span class="kw">type</span> signature for
+<span class="ot">                 postDataSourceInputR ::</span> <span class="dt">Yesod</span> master <span class="ot">=&gt;</span>
+                                         <span class="dt">HandlerT</span> <span class="dt">HelloSub</span> (<span class="dt">HandlerT</span> master <span class="dt">IO</span>) <span class="dt">Html</span>
+      at HelloSub.hs<span class="fu">:</span><span class="dv">25</span><span class="fu">:</span><span class="dv">25</span><span class="fu">-</span><span class="dv">83</span>
+      <span class="ot">`master' is a rigid type variable bound by</span>
+<span class="ot">               the type signature for</span>
+<span class="ot">                 postDataSourceInputR :: Yesod master =&gt;</span>
+<span class="ot">                                         HandlerT HelloSub (HandlerT master IO) Html</span>
+<span class="ot">               at HelloSub.hs:25:25</span>
+<span class="ot">    Expected type: WidgetT</span>
+<span class="ot">                     master IO (Route HelloSub -&gt; [(Text, Text)] -&gt; Text)</span>
+<span class="ot">      Actual type: WidgetT</span>
+<span class="ot">                     master</span>
+<span class="ot">                     IO</span>
+<span class="ot">                     (Route (HandlerSite (WidgetT master IO)) -&gt; [(Text, Text)] -&gt; Text)</span>
+<span class="ot">    Relevant bindings include</span>
+<span class="ot">      postDataSourceInputR :: HandlerT HelloSub (HandlerT master IO) Html</span>
+<span class="ot">        (bound at HelloSub.hs:26:1)</span>
+<span class="ot">    In the first argument of `</span>(<span class="fu">&gt;&gt;=</span>)<span class="ch">', namely `getUrlRenderParams'</span>
+    <span class="dt">In</span> a stmt <span class="kw">of</span> a <span class="ch">'do'</span> block<span class="fu">:</span>
+      (getUrlRenderParams
+       <span class="fu">&gt;&gt;=</span>
+         (\ urender_anjY
+            <span class="ot">-&gt;</span> (asWidgetT <span class="fu">GHC.Base..</span> toWidget)
+                 (toHtml (\ u_anjZ <span class="ot">-&gt;</span> urender_anjY u_anjZ [] <span class="dt">DataSourceInputR</span>)))</code></pre></div>
+<p>Man, this just gets better and better, doesn’t it. TH is being a pain in my <em>ASS</em>.</p>
+<p>Snoyman has a wiki example in a Github, let’s check that out : <a href="https://github.com/yesodweb/yesod/blob/new-subsite/demo/WikiRoutes.hs" class="uri">https://github.com/yesodweb/yesod/blob/new-subsite/demo/WikiRoutes.hs</a></p>
+<p>I have no clue what the problem is.</p>
+<p>Ok, screw it, let’s just go back to the basics:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">postDataSourceInputR ::</span> <span class="dt">Yesod</span> master <span class="ot">=&gt;</span> <span class="dt">HandlerT</span> <span class="dt">HelloSub</span> (<span class="dt">HandlerT</span> master <span class="dt">IO</span>) <span class="dt">Html</span>
+postDataSourceInputR <span class="fu">=</span> <span class="kw">do</span> lift <span class="fu">$</span> defaultLayout [whamlet<span class="fu">|</span>test<span class="fu">|</span>]
+
+<span class="co">-- And we'll spell out the handler type signature.</span>
+<span class="ot">getSubHomeR ::</span> <span class="dt">Yesod</span> master <span class="ot">=&gt;</span> <span class="dt">HandlerT</span> <span class="dt">HelloSub</span> (<span class="dt">HandlerT</span> master <span class="dt">IO</span>) <span class="dt">Html</span>
+getSubHomeR <span class="fu">=</span> <span class="kw">do</span> lift <span class="fu">$</span> defaultLayout [whamlet<span class="fu">|</span>test<span class="fu">|</span>]</code></pre></div>
+<p>Ok, that compiles.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">getSubHomeR ::</span> <span class="dt">Yesod</span> master <span class="ot">=&gt;</span> <span class="dt">HandlerT</span> <span class="dt">HelloSub</span> (<span class="dt">HandlerT</span> master <span class="dt">IO</span>) <span class="dt">Html</span>
+getSubHomeR <span class="fu">=</span> <span class="kw">do</span> 
+  (widget, enctype) <span class="ot">&lt;-</span> generateFormPost simpleSourceForm
+  lift <span class="fu">$</span> defaultLayout [whamlet<span class="fu">|</span>
+    <span class="fu">&lt;</span>form method<span class="fu">=</span>post action<span class="fu">=@</span>{<span class="dt">DataSourceInputR</span>} enctype<span class="fu">=#</span>{enctype}<span class="fu">&gt;</span>
+    <span class="fu">^</span>{widget}
+    <span class="fu">&lt;</span>button<span class="fu">&gt;</span><span class="dt">Submit</span>
+  <span class="fu">|</span>]
+  
+simpleSourceForm <span class="fu">=</span> renderDivs <span class="fu">$</span> <span class="dt">DataSourceInput</span>
+  <span class="fu">&lt;$&gt;</span> areq intField <span class="st">&quot;Start&quot;</span> <span class="dt">Nothing</span>
+  <span class="fu">&lt;*&gt;</span> areq intField <span class="st">&quot;End&quot;</span> <span class="dt">Nothing</span></code></pre></div>
+<p>That doesn’t:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">HelloSub.hs<span class="fu">:</span><span class="dv">25</span><span class="fu">:</span><span class="dv">33</span><span class="fu">:</span>
+    <span class="dt">Could</span> not deduce (master <span class="fu">~</span> <span class="dt">HelloSub</span>)
+    from the context (<span class="dt">Yesod</span> master)
+      bound by the <span class="kw">type</span> signature for
+<span class="ot">                 getSubHomeR ::</span> <span class="dt">Yesod</span> master <span class="ot">=&gt;</span>
+                                <span class="dt">HandlerT</span> <span class="dt">HelloSub</span> (<span class="dt">HandlerT</span> master <span class="dt">IO</span>) <span class="dt">Html</span>
+      at HelloSub.hs<span class="fu">:</span><span class="dv">22</span><span class="fu">:</span><span class="dv">16</span><span class="fu">-</span><span class="dv">74</span>
+      <span class="ot">`master' is a rigid type variable bound by</span>
+<span class="ot">               the type signature for</span>
+<span class="ot">                 getSubHomeR :: Yesod master =&gt;</span>
+<span class="ot">                                HandlerT HelloSub (HandlerT master IO) Html</span>
+<span class="ot">               at HelloSub.hs:22:16</span>
+<span class="ot">    Expected type: WidgetT</span>
+<span class="ot">                     master IO (Route HelloSub -&gt; [(Text, Text)] -&gt; Text)</span>
+<span class="ot">      Actual type: WidgetT</span>
+<span class="ot">                     master</span>
+<span class="ot">                     IO</span>
+<span class="ot">                     (Route (HandlerSite (WidgetT master IO)) -&gt; [(Text, Text)] -&gt; Text)</span>
+<span class="ot">    Relevant bindings include</span>
+<span class="ot">      getSubHomeR :: HandlerT HelloSub (HandlerT master IO) Html</span>
+<span class="ot">        (bound at HelloSub.hs:23:1)</span>
+<span class="ot">    In the first argument of `</span>(<span class="fu">&gt;&gt;=</span>)<span class="ch">', namely `getUrlRenderParams'</span>
+    <span class="dt">In</span> a stmt <span class="kw">of</span> a <span class="ch">'do'</span> block<span class="fu">:</span>
+      (getUrlRenderParams
+       <span class="fu">&gt;&gt;=</span>
+         (\ urender_anFs
+            <span class="ot">-&gt;</span> (asWidgetT <span class="fu">GHC.Base..</span> toWidget)
+                 (toHtml (\ u_anFt <span class="ot">-&gt;</span> urender_anFs u_anFt [] <span class="dt">DataSourceInputR</span>))))</code></pre></div>
+<p>Stupid equality constraints.</p>
+<p><strong>MORE GOOGLING</strong></p>
+<p><a href="https://github.com/yesodweb/yesod/wiki/Intra-subsite-links" class="uri">https://github.com/yesodweb/yesod/wiki/Intra-subsite-links</a></p>
+<p>AHA</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">getSubHomeR ::</span> <span class="dt">Yesod</span> master <span class="ot">=&gt;</span> <span class="dt">HandlerT</span> <span class="dt">HelloSub</span> (<span class="dt">HandlerT</span> master <span class="dt">IO</span>) <span class="dt">Html</span>
+getSubHomeR <span class="fu">=</span> <span class="kw">do</span> 
+  (widget, enctype) <span class="ot">&lt;-</span> generateFormPost simpleSourceForm
+  toMaster <span class="ot">&lt;-</span> getRouteToParent
+  lift <span class="fu">$</span> defaultLayout [whamlet<span class="fu">|</span>
+    <span class="fu">&lt;</span>form method<span class="fu">=</span>post action<span class="fu">=@</span>{toMaster <span class="dt">DataSourceInputR</span>} enctype<span class="fu">=#</span>{enctype}<span class="fu">&gt;</span>
+    <span class="fu">^</span>{widget}
+    <span class="fu">&lt;</span>button<span class="fu">&gt;</span><span class="dt">Submit</span>
+  <span class="fu">|</span>]</code></pre></div>
+<p>Dammit:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">HelloSub.hs<span class="fu">:</span><span class="dv">26</span><span class="fu">:</span><span class="dv">33</span><span class="fu">:</span>
+    <span class="dt">Could</span> not deduce (master <span class="fu">~</span> <span class="dt">HelloSub</span>)
+    from the context (<span class="dt">Yesod</span> master)
+      bound by the <span class="kw">type</span> signature for
+<span class="ot">                 getSubHomeR ::</span> <span class="dt">Yesod</span> master <span class="ot">=&gt;</span>
+                                <span class="dt">HandlerT</span> <span class="dt">HelloSub</span> (<span class="dt">HandlerT</span> master <span class="dt">IO</span>) <span class="dt">Html</span>
+      at HelloSub.hs<span class="fu">:</span><span class="dv">22</span><span class="fu">:</span><span class="dv">16</span><span class="fu">-</span><span class="dv">74</span>
+      <span class="ot">`master' is a rigid type variable bound by</span>
+<span class="ot">               the type signature for</span>
+<span class="ot">                 getSubHomeR :: Yesod master =&gt;</span>
+<span class="ot">                                HandlerT HelloSub (HandlerT master IO) Html</span>
+<span class="ot">               at HelloSub.hs:22:16</span>
+<span class="ot">    Relevant bindings include</span>
+<span class="ot">      toMaster :: Route HelloSub -&gt; Route master</span>
+<span class="ot">        (bound at HelloSub.hs:25:3)</span>
+<span class="ot">      getSubHomeR :: HandlerT HelloSub (HandlerT master IO) Html</span>
+<span class="ot">        (bound at HelloSub.hs:23:1)</span>
+<span class="ot">    In the second argument of `</span>(<span class="fu">GHC.Base..</span>)<span class="ch">', namely `toWidget'</span>
+    <span class="dt">In</span> the expression<span class="fu">:</span> asWidgetT <span class="fu">GHC.Base..</span> toWidget
+    <span class="dt">In</span> a stmt <span class="kw">of</span> a <span class="ch">'do'</span> block<span class="fu">:</span> (asWidgetT <span class="fu">GHC.Base..</span> toWidget) widget</code></pre></div>
+<p>Reduce example again:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">getSubHomeR ::</span> <span class="dt">Yesod</span> master <span class="ot">=&gt;</span> <span class="dt">HandlerT</span> <span class="dt">HelloSub</span> (<span class="dt">HandlerT</span> master <span class="dt">IO</span>) <span class="dt">Html</span>
+getSubHomeR <span class="fu">=</span> <span class="kw">do</span>
+ toMaster <span class="ot">&lt;-</span> getRouteToParent
+ lift <span class="fu">$</span> defaultLayout [whamlet<span class="fu">|&lt;</span>a href<span class="fu">=@</span>{toMaster <span class="dt">DataSourceInputR</span>}<span class="fu">&gt;</span> <span class="fu">|</span>]</code></pre></div>
+<p>YES THAT WORKS</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="dt">Internal</span> <span class="dt">Server</span> <span class="dt">Error</span>
+Application.hs<span class="fu">:</span><span class="dv">60</span><span class="fu">:</span><span class="dv">36</span><span class="fu">-</span><span class="dv">43</span><span class="fu">:</span> <span class="dt">Missing</span> field <span class="kw">in</span> record construction Foundation.getHelloSub</code></pre></div>
+<p>NO IT DOESNT</p>
+<p>This probably has to do with the warning message it keeps puking out:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">Application.hs<span class="fu">:</span><span class="dv">60</span><span class="fu">:</span><span class="dv">36</span><span class="fu">:</span> <span class="dt">Warning</span><span class="fu">:</span>
+    <span class="dt">Fields</span> <span class="kw">of</span> <span class="ot">`App' not initialised: getHelloSub</span>
+<span class="ot">    In the expression: App {..}</span>
+<span class="ot">    In an equation for `</span>mkFoundation'<span class="fu">:</span>
+        mkFoundation appConnPool <span class="fu">=</span> <span class="dt">App</span> {<span class="fu">..</span>}
+    <span class="dt">In</span> the expression<span class="fu">:</span>
+      <span class="kw">do</span> { appHttpManager <span class="ot">&lt;-</span> newManager;
+           appLogger <span class="ot">&lt;-</span> newStdoutLoggerSet defaultBufSize <span class="fu">&gt;&gt;=</span> makeYesodLogger;
+           appStatic <span class="ot">&lt;-</span> (<span class="kw">if</span> appMutableStatic appSettings <span class="kw">then</span>
+                             staticDevel
+                         <span class="kw">else</span>
+                             static)
+                          (appStaticDir appSettings);
+           <span class="kw">let</span> mkFoundation appConnPool <span class="fu">=</span> <span class="fu">...</span>
+               tempFoundation
+                 <span class="fu">=</span> mkFoundation <span class="fu">$</span> error <span class="st">&quot;connPool forced in tempFoundation&quot;</span>
+               <span class="fu">....</span>;
+           <span class="fu">....</span> }</code></pre></div>
+<p>How do I initialize <code>getHelloSub</code>? Is that even a solution?</p>
+<p>Screw it, I’ll contact Snoyberg.</p>
+<h3 id="the-next-day">THE NEXT DAY</h3>
+<p>Snoyberg contacted.</p>
+<blockquote>
+<p>the problem is that you haven’t populated the <code>getHelloSub</code> field in the <code>makeFoundation</code> function.</p>
+</blockquote>
+<p>Ok.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">makeFoundation ::</span> <span class="dt">AppSettings</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> <span class="dt">App</span>
+makeFoundation appSettings <span class="fu">=</span> <span class="kw">do</span>
+    <span class="co">-- Some basic initializations: HTTP connection manager, logger, and static</span>
+    <span class="co">-- subsite.</span>
+    appHttpManager <span class="ot">&lt;-</span> newManager
+    appLogger <span class="ot">&lt;-</span> newStdoutLoggerSet defaultBufSize <span class="fu">&gt;&gt;=</span> makeYesodLogger
+    appStatic <span class="ot">&lt;-</span>
+        (<span class="kw">if</span> appMutableStatic appSettings <span class="kw">then</span> staticDevel <span class="kw">else</span> static)
+        (appStaticDir appSettings)
+        
+    getHelloSub <span class="ot">&lt;-</span> return <span class="dt">HelloSub</span>
+
+    <span class="co">-- We need a log function to create a connection pool. We need a connection</span>
+    <span class="co">-- pool to create our foundation. And we need our foundation to get a</span>
+    <span class="co">-- logging function. To get out of this loop, we initially create a</span>
+    <span class="co">-- temporary foundation without a real connection pool, get a log function</span>
+    <span class="co">-- from there, and then create the real foundation.</span>
+    <span class="kw">let</span> mkFoundation appConnPool <span class="fu">=</span> <span class="dt">App</span> {<span class="fu">..</span>}
+        tempFoundation <span class="fu">=</span> mkFoundation <span class="fu">$</span> error <span class="st">&quot;connPool forced in tempFoundation&quot;</span>
+        logFunc <span class="fu">=</span> messageLoggerSource tempFoundation appLogger
+
+    <span class="co">-- Create the database connection pool</span>
+    pool <span class="ot">&lt;-</span> flip runLoggingT logFunc <span class="fu">$</span> createSqlitePool
+        (sqlDatabase <span class="fu">$</span> appDatabaseConf appSettings)
+        (sqlPoolSize <span class="fu">$</span> appDatabaseConf appSettings)
+
+    <span class="co">-- Perform database migration using our application's logging settings.</span>
+    runLoggingT (runSqlPool (runMigration migrateAll) pool) logFunc
+    
+    <span class="co">-- Return the foundation</span>
+    return <span class="fu">$</span> mkFoundation pool</code></pre></div>
+<p>There we go.</p>
+<p>It works now. Nice. Let’s add the form stuff now.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">getDataSourceInputR ::</span> <span class="dt">HelloSubHandler</span> <span class="dt">Html</span>
+getDataSourceInputR <span class="fu">=</span> <span class="kw">do</span> 
+  toMaster <span class="ot">&lt;-</span> getRouteToParent
+  (widget, enctype) <span class="ot">&lt;-</span> generateFormPost simpleSourceForm
+  lift <span class="fu">$</span> defaultLayout
+            [whamlet<span class="fu">|</span>
+                <span class="fu">&lt;</span>p<span class="fu">&gt;</span>
+                    <span class="dt">The</span> widget generated contains only the contents
+                    <span class="kw">of</span> the form, not the form tag itself<span class="fu">.</span> <span class="fu">So...</span>
+                <span class="fu">&lt;</span>form method<span class="fu">=</span>post action<span class="fu">=@</span>{toMaster <span class="dt">DataSourceInputR</span>} enctype<span class="fu">=#</span>{enctype}<span class="fu">&gt;</span>
+                    <span class="fu">^</span>{widget}
+                    <span class="fu">&lt;</span>p<span class="fu">&gt;</span><span class="dt">It</span> also doesn't include the submit button<span class="fu">.</span>
+                    <span class="fu">&lt;</span>button<span class="fu">&gt;</span><span class="dt">Submit</span>
+            <span class="fu">|</span>]</code></pre></div>
+<p>Added the form stuff, have the equality constraint problem again:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">HelloSub.hs<span class="fu">:</span><span class="dv">27</span><span class="fu">:</span><span class="dv">22</span><span class="fu">:</span>
+    <span class="dt">Could</span> not deduce (master <span class="fu">~</span> <span class="dt">HelloSub</span>)
+    from the context (<span class="dt">YesodHelloSub</span> master)
+      bound by the <span class="kw">type</span> signature for
+<span class="ot">                 getDataSourceInputR ::</span> <span class="dt">YesodHelloSub</span> master <span class="ot">=&gt;</span>
+                                        <span class="dt">HandlerT</span> <span class="dt">HelloSub</span> (<span class="dt">HandlerT</span> master <span class="dt">IO</span>) <span class="dt">Html</span>
+      at HelloSub.hs<span class="fu">:</span><span class="dv">22</span><span class="fu">:</span><span class="dv">24</span><span class="fu">-</span><span class="dv">43</span>
+      <span class="ot">`master' is a rigid type variable bound by</span>
+<span class="ot">               the type signature for</span>
+<span class="ot">                 getDataSourceInputR :: YesodHelloSub master =&gt;</span>
+<span class="ot">                                        HandlerT HelloSub (HandlerT master IO) Html</span>
+<span class="ot">               at HelloSub.hs:19:33</span>
+<span class="ot">    Relevant bindings include</span>
+<span class="ot">      toMaster :: Route HelloSub -&gt; Route master</span>
+<span class="ot">        (bound at HelloSub.hs:24:3)</span>
+<span class="ot">      getDataSourceInputR :: HandlerT HelloSub (HandlerT master IO) Html</span>
+<span class="ot">        (bound at HelloSub.hs:23:1)</span>
+<span class="ot">    In the second argument of `</span>(<span class="fu">GHC.Base..</span>)<span class="ch">', namely `toWidget'</span>
+    <span class="dt">In</span> the expression<span class="fu">:</span> asWidgetT <span class="fu">GHC.Base..</span> toWidget
+    <span class="dt">In</span> a stmt <span class="kw">of</span> a <span class="ch">'do'</span> block<span class="fu">:</span> (asWidgetT <span class="fu">GHC.Base..</span> toWidget) widget</code></pre></div>
+<p>Let’s look at Snoyman’s wiki example again: <a href="https://github.com/yesodweb/yesod/blob/new-subsite/demo" class="uri">https://github.com/yesodweb/yesod/blob/new-subsite/demo</a></p>
+<p>Let’s add the type alias, it’s nice.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">class</span> (<span class="dt">RenderMessage</span> master <span class="dt">FormMessage</span>, <span class="dt">Yesod</span> master) <span class="ot">=&gt;</span> <span class="dt">YesodHelloSub</span> master <span class="kw">where</span>
+<span class="ot">    dummyThing ::</span> <span class="dt">HandlerT</span> master <span class="dt">IO</span> <span class="dt">Bool</span>
+    dummyThing <span class="fu">=</span> return <span class="dt">True</span>
+    
+<span class="kw">type</span> <span class="dt">HelloSubHandler</span> a <span class="fu">=</span> forall master<span class="fu">.</span> <span class="dt">YesodHelloSub</span> master 
+                         <span class="ot">=&gt;</span> <span class="dt">HandlerT</span> <span class="dt">HelloSub</span> (<span class="dt">HandlerT</span> master <span class="dt">IO</span>) a
+                         
+<span class="kw">instance</span> <span class="dt">YesodHelloSub</span> master <span class="ot">=&gt;</span> <span class="dt">YesodSubDispatch</span> <span class="dt">HelloSub</span> (<span class="dt">HandlerT</span> master <span class="dt">IO</span>) <span class="kw">where</span>
+    yesodSubDispatch <span class="fu">=</span> <span class="fu">$</span>(mkYesodSubDispatch resourcesHelloSub)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- In Foundation.hs</span>
+<span class="kw">instance</span> <span class="dt">YesodHelloSub</span> <span class="dt">App</span></code></pre></div>
+<p>(might be fine to put that elsewhere? Who knows.)</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">getSubHomeR ::</span> <span class="dt">HelloSubHandler</span> <span class="dt">Html</span></code></pre></div>
+<p>Ooh, squeaky clean. Didn’t fix the equality constraint type error, though.</p>
+<p>It’s got something to do with the widget, apparently? Screw it, I’ll just lift it.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">(widget, enctype) <span class="ot">&lt;-</span> lift <span class="fu">$</span> generateFormPost simpleSourceForm</code></pre></div>
+<p>WOO THAT WORKED</p>
+<p>Ok, let’s introduce the POST part.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">postDataSourceInputR ::</span> <span class="dt">HelloSubHandler</span> <span class="dt">Html</span>
+postDataSourceInputR <span class="fu">=</span> <span class="kw">do</span>
+    toMaster <span class="ot">&lt;-</span> getRouteToParent
+    ((result, widget), enctype) <span class="ot">&lt;-</span> runFormPost simpleSourceForm
+    <span class="kw">case</span> result <span class="kw">of</span>
+        <span class="dt">FormSuccess</span> datasource <span class="ot">-&gt;</span> lift <span class="fu">$</span> defaultLayout [whamlet<span class="fu">|&lt;</span>p<span class="fu">&gt;#</span>{show datasource}<span class="fu">|</span>]
+        _ <span class="ot">-&gt;</span> lift <span class="fu">$</span> defaultLayout
+            [whamlet<span class="fu">|&lt;</span>a href<span class="fu">=@</span>{toMaster <span class="dt">SubHomeR</span>}<span class="fu">&gt;</span> <span class="fu">|</span>]</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">            HelloSub.hs<span class="fu">:</span><span class="dv">52</span><span class="fu">:</span><span class="dv">36</span><span class="fu">:</span>
+    <span class="dt">Could</span> not deduce (<span class="dt">RenderMessage</span> <span class="dt">HelloSub</span> <span class="dt">FormMessage</span>)
+      arising from a use <span class="kw">of</span> <span class="ot">`runFormPost'</span>
+<span class="ot">    from the context (YesodHelloSub master)</span>
+<span class="ot">      bound by the type signature for</span>
+<span class="ot">                 postDataSourceInputR :: YesodHelloSub master =&gt;</span>
+<span class="ot">                                         HandlerT HelloSub (HandlerT master IO) Html</span>
+<span class="ot">      at HelloSub.hs:49:25-44</span>
+<span class="ot">    In a stmt of a 'do' block:</span>
+<span class="ot">      ((result, widget), enctype) &lt;- runFormPost simpleSourceForm</span>
+<span class="ot">    In the expression:</span>
+<span class="ot">      do { toMaster &lt;- getRouteToParent;</span>
+<span class="ot">           ((result, widget), enctype) &lt;- runFormPost simpleSourceForm;</span>
+<span class="ot">           case result of {</span>
+<span class="ot">             FormSuccess datasource</span>
+<span class="ot">               -&gt; lift</span>
+<span class="ot">                  $ defaultLayout</span>
+<span class="ot">                      (do { (asWidgetT GHC.Base.. toWidget)</span>
+<span class="ot">                              ((blaze-markup-0.7.0.2:Text.Blaze.Internal.preEscapedText</span>
+<span class="ot">                                GHC.Base.. Data.Text.pack)</span>
+<span class="ot">                                 &quot;&lt;p&gt;&quot;);</span>
+<span class="ot">                            .... })</span>
+<span class="ot">             _ -&gt; lift</span>
+<span class="ot">                  $ defaultLayout</span>
+<span class="ot">                      (do { (asWidgetT GHC.Base.. toWidget)</span>
+<span class="ot">                              ((blaze-markup-0.7.0.2:Text.Blaze.Internal.preEscapedText</span>
+<span class="ot">                                GHC.Base.. Data.Text.pack)</span>
+<span class="ot">                                 &quot;&lt;a href=\&quot;&quot;);</span>
+<span class="ot">                            .... }) } }</span>
+<span class="ot">    In an equation for `</span>postDataSourceInputR'<span class="fu">:</span>
+        postDataSourceInputR
+          <span class="fu">=</span> <span class="kw">do</span> { toMaster <span class="ot">&lt;-</span> getRouteToParent;
+                 ((result, widget), enctype) <span class="ot">&lt;-</span> runFormPost simpleSourceForm;
+                 <span class="kw">case</span> result <span class="kw">of</span> {
+                   <span class="dt">FormSuccess</span> datasource <span class="ot">-&gt;</span> lift <span class="fu">$</span> defaultLayout (<span class="kw">do</span> { <span class="fu">...</span> })
+                   _ <span class="ot">-&gt;</span> lift <span class="fu">$</span> defaultLayout (<span class="kw">do</span> { <span class="fu">...</span> }) } }</code></pre></div>
+<p>Ooh boy.</p>
+<p>Hmm: <code>RenderMessage HelloSub FormMessage</code></p>
+<p>Sounds like we need to lift it to the master implementation again.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">((result, widget), enctype) <span class="ot">&lt;-</span> lift <span class="fu">$</span> runFormPost simpleSourceForm</code></pre></div>
+<p>Works! (finally!)</p>
+<h2 id="cabal-hell">CABAL HELL</h2>
+<p>Let’s make some repos for each package and see how horrible it all plays with cabal sandboxes.</p>
+<p>Yesod doesn’t like to play with cabal sandboxes AT ALL. How do I pass sandbox arguments to <code>yesod devel</code>?</p>
+<pre><code>yesod devel -e &quot;--sandbox-config-file=../sandbox/cabal.sandbox.config&quot;
+Yesod devel server. Press ENTER to quit
+cabal: unrecognized 'configure' option
+`--sandbox-config-file=../sandbox/cabal.sandbox.config'</code></pre>
+<p>Nope.</p>
+<pre><code>yesod devel -e &quot;--sandbox-config-file=\&quot;../sandbox/cabal.sandbox.config\&quot;&quot;
+Yesod devel server. Press ENTER to quit
+cabal: unrecognized 'configure' option
+`--sandbox-config-file=&quot;../sandbox/cabal.sandbox.config&quot;'
+cabal: unrecognized 'configure' option
+`--sandbox-config-file=&quot;../sandbox/cabal.sandbox.config&quot;'</code></pre>
+<p>Nope.</p>
+<pre><code>cabal help sandbox
+Usage: cabal sandbox init
+   or: cabal sandbox delete
+   or: cabal sandbox add-source  [PATHS]
+
+   or: cabal sandbox hc-pkg      -- [ARGS]
+   or: cabal sandbox list-sources
+
+Flags for sandbox:
+ -h --help        Show this help text
+ -v --verbose[=n] Control verbosity (n is 0--3, default verbosity level is 1)
+    --snapshot    Take a snapshot instead of creating a link (only applies to
+                  'add-source')
+    --sandbox=DIR Sandbox location (default: './.cabal-sandbox').</code></pre>
+<p>Perhaps…</p>
+<pre><code>&gt;yesod devel -e &quot;--sandbox=../sandbox/.cabal-sandbox&quot;
+Yesod devel server. Press ENTER to quit
+cabal: unrecognized 'configure' option `--sandbox=../sandbox/.cabal-sandbox'</code></pre>
+<p>Nope.</p>
+<pre><code>yesod devel -e &quot;sandbox --sandbox=../sandbox/.cabal-sandbox&quot;
+Yesod devel server. Press ENTER to quit
+Resolving dependencies...
+cabal: Unrecognised flags: sandbox --sandbox=../sandbox/.cabal-sandbox</code></pre>
+<p>Nope.</p>
+<p>Google?</p>
+<p><a href="http://blog.pangyanhan.com/haskell/2013-11-31-using-cabal-sandbox-libraries.html" class="uri">http://blog.pangyanhan.com/haskell/2013-11-31-using-cabal-sandbox-libraries.html</a></p>
+<p>Nope.</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>There is still a lot to be done to make Yesod development productive without boatloads of <a href="https://en.wiktionary.org/wiki/yak_shaving">yak shaving</a>. It was very hard to find examples of the functionality I wanted, or even a usable (and working with the latest stable release!) list of Yesod subsites.</p>
+
+<footer>
+  &copy; June 17, 2015 Beerend Lauwers &lt;beerendlauwers@gmail.com&gt;
+</footer>
+
+        </div>
+        <div class="page-wrap" id="footer">
+            Site automatically generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Getting Hakyll up and running on Windows</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/custom.css" />
+        <link rel="stylesheet" type="text/css" href="../css/font-awesome.min.css">
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-64277210-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </head>
+    <body>
+        <div class="page-wrap">
+            <h1>Getting Hakyll up and running on Windows</h1>
+<p class="author">By <a href="http://beerendlauwers.be/">Beerend Lauwers</a></p>
+
+<div class="note">
+<p>This is now <em>way</em> easier with <code>stack</code>. <a href="../posts/2015-08-04-hakyll-with-stack.html">Here’s a tutorial.</a></p>
+</div>
+<p>Phew. That took a lot longer than expected.</p>
+<h2 id="installing-ghc-on-windows">Installing GHC on Windows</h2>
+<p>Most people use the <a href="https://www.haskell.org/platform/">Haskell Platform</a> to get GHC working properly on Windows. I knew that the HP is currently in a state of flux and that building libraries like <code>network</code> tends to fail.</p>
+<p>Enter <a href="https://github.com/fpco/minghc">MinGHC</a>: a minimal installer for getting GHC, Cabal and (optionally) MSYS. I already had MSYS installed because of <a href="https://msysgit.github.io/">msysgit</a>, so I was a bit fearful it would tear a hole into my Gitting capabilities. Fortunately, MinGHC installed without a hitch, and I could compile packages with C-library dependencies. Great!</p>
+<h2 id="setting-up-stackage-and-putting-it-all-in-a-sandbox">Setting up Stackage and putting it all in a sandbox</h2>
+<h3 id="stackage">Stackage</h3>
+<p>I like <a href="http://www.stackage.org/">Stackage</a>. It’s a stable package repository. Combining it with Cabal sandboxes, you’re usually well protected against cabal hell.</p>
+<p>To make Stackage the default global repository, do this:</p>
+<ol style="list-style-type: decimal">
+<li><p>Download the <code>.config</code> file from <a href="http://www.stackage.org/">Stackage</a>. I originally used version <a href="http://www.stackage.org/lts-1.15/cabal.config">lts-1.15</a>. This becomes a problem later on because it doesn’t include <code>hakyll</code>, so you’ll want a more recent version. I used <a href="http://www.stackage.org/lts-2.13/cabal.config">lts-2.14</a>.</p></li>
+<li><p>Then, (on Windows 7) go to the directory <code>Users/&lt;username&gt;/AppData/Roaming/cabal</code> and open the <code>config</code> file. Go to the bottom of the file and paste the entire contents of the Stackage LTS config file there.</p></li>
+<li><p>Because I like extra safety, I also uncommented the <code>remote-repo</code> line:</p></li>
+</ol>
+<pre><code>-- To only use tested packages, uncomment the following line:
+remote-repo: stackage-lts-2.13:http://www.stackage.org/lts-2.13</code></pre>
+<h3 id="cabal-sandboxes">Cabal sandboxes</h3>
+<p>Ok. Now to install everything in a cabal sandbox. Go to the folder where you want to put the sandbox in and do:</p>
+<pre><code>&gt; cabal sandbox init
+&gt; cabal install hakyll</code></pre>
+<p>Because I was originally using Stackage LTS 1.15, it didn’t have Hakyll. I then had the very bad idea of allowing the Hackage repository, but it would solely be for this cabal sandbox.</p>
+<h3 id="exposing-the-hackage-repository-to-a-single-sandbox">Exposing the Hackage repository to a single sandbox</h3>
+<p>Go into your initiated cabal sandbox directory and put a <code>cabal.config</code> file in it with the following contents:</p>
+<pre><code>remote-repo: hackage.haskell.org:http://hackage.haskell.org/packages/archive
+remote-repo-cache: &lt;absolute-path-to-your-cabal-sandbox-directory&gt;\.cabal-sandbox\packages</code></pre>
+<p>We can then access it with the <code>--config-file</code> flag:</p>
+<pre><code>&gt; cabal --config-file=cabal.config update</code></pre>
+<p>I tried installing Hakyll this way, which failed spectacularly. I then updated my global cabal <code>.config</code> file to LTS 2.13 and downloaded and installed the <code>hakyll</code> package in a new sandbox.</p>
+<h2 id="generating-a-hakyll-site-and-customizing-it">Generating a Hakyll site and customizing it</h2>
+<h3 id="hakyll-init">hakyll-init</h3>
+<p>I just followed the instructions on the <a href="http://jaspervdj.be/hakyll/tutorials/01-installation.html">Hakyll website</a> here:</p>
+<pre><code>&gt; hakyll-init beerendlauwers
+'hakyll-init' is not recognized as an internal or external command,
+operable program or batch file.</code></pre>
+<p>Oh. Right. The binary was installed in the sandbox:</p>
+<pre><code>&gt; &quot;.cabal-sandbox/bin/hakyll-init&quot; beerendlauwers
+Creating beerendlauwers\templates\post.html
+Creating beerendlauwers\templates\post-list.html
+Creating beerendlauwers\templates\default.html
+Creating beerendlauwers\templates\archive.html
+Creating beerendlauwers\site.hs
+Creating beerendlauwers\posts\2012-12-07-tu-quoque.markdown
+Creating beerendlauwers\posts\2012-11-28-carpe-diem.markdown
+Creating beerendlauwers\posts\2012-10-07-rosa-rosa-rosam.markdown
+Creating beerendlauwers\posts\2012-08-12-spqr.markdown
+Creating beerendlauwers\index.html
+Creating beerendlauwers\images\haskell-logo.png
+Creating beerendlauwers\css\default.css
+Creating beerendlauwers\contact.markdown
+Creating beerendlauwers\about.rst
+Creating beerendlauwers\test.cabal</code></pre>
+<p>Ok, now let’s build the <code>site.hs</code> file:</p>
+<pre><code>&gt; ghc --make -threaded site.hs
+
+site.hs:4:18:
+    Could not find module â€˜Hakyllâ€™
+    Use -v to see a list of the files searched for.</code></pre>
+<p>Hmm. Apparently GHC doesn’t know about our sandbox. Some quick googling reveals the following solution:</p>
+<pre><code>&gt; ghc -package-db=.cabal-sandbox/x86_64-windows-ghc-7.8.4-packages.conf.d --make -threaded site.hs
+[1 of 1] Compiling Main             ( site.hs, site.o )
+Linking site.exe ...</code></pre>
+<p>Great, that works.</p>
+<h3 id="customizing-the-site">Customizing the site</h3>
+<p>I took over the great majority of the layout of <a href="http://chrisdone.com/">Chris Done’s excellent website</a>. He uses an old version of Hakyll, so the Haskell code was slightly different. Still, it was easy to mentally map how Chris’ <code>Main.hs</code> correlated with the <code>site.hs</code> file.</p>
+<p>I wanted nice font-based icons for the social media links on my homepage, and <a href="http://fortawesome.github.io/Font-Awesome/">Font Awesome</a> delivers in spades. I copied over the <code>css</code> and <code>fonts</code> folders into my website root directory, but the <code>fonts</code> folder wasn’t being copied over during compilation. A quick look in <code>site.hs</code> showed I needed to add a few lines:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">    match <span class="st">&quot;images/*&quot;</span> <span class="fu">$</span> <span class="kw">do</span>
+        route   idRoute
+        compile copyFileCompiler
+        
+    match <span class="st">&quot;fonts/*&quot;</span> <span class="fu">$</span> <span class="kw">do</span>            <span class="co">-- Added</span>
+        route   idRoute             <span class="co">-- these</span>
+        compile copyFileCompiler    <span class="co">-- lines</span>
+
+    match <span class="st">&quot;css/*&quot;</span> <span class="fu">$</span> <span class="kw">do</span>
+        route   idRoute
+        compile compressCssCompiler</code></pre></div>
+<p>After that, the site was ready for writing posts!</p>
+<h2 id="compiling-this-very-post">Compiling this very post</h2>
+<p>Yes, we are most certainly not out of the woods yet. Running <code>site build</code> caused this output, dying on the <code>'</code> in the sentence <code>Combining it with Cabal sandboxes, you're usually well protected against cabal hell.</code>:</p>
+<pre><code>Initialising...
+  Creating store...
+  Creating provider...
+  Running rules...
+Checking for out-of-date items
+Compiling
+  updated posts/2015-06-06-getting-hakyll-running-on-windows.markdown
+site: _site\posts/2015-06-06-getting-hakyll-running-on-windows.html: 
+commitBuffer: invalid argument (invalid character)</code></pre>
+<p><a href="https://github.com/jaspervdj/hakyll/issues/253">Apparently</a>, the solution is to change the active code page by doing <code>chcp 65001</code> in the command line before doing a <code>site build</code>:</p>
+<pre><code>&gt; chcp 65001
+Active code page: 65001
+
+&gt; site build
+Initialising...
+  Creating store...
+  Creating provider...
+  Running rules...
+Checking for out-of-date items
+Compiling
+  updated posts/2015-06-06-getting-hakyll-running-on-windows.markdown
+  updated archive.html
+  updated index.html
+Success</code></pre>
+<h2 id="throwing-it-all-on-github-to-host-on-github-pages">Throwing it all on Github to host on Github pages</h2>
+<p>I had already configured a Github pages repository, so all I needed to do was push it to the repository.</p>
+<p>There’s some really fancy deployment options available, such as automatic deployment with <a href="http://begriffs.com/posts/2014-08-12-create-static-site-with-hakyll-github.html">Travis CI</a>.</p>
+<p>I’ll keep it simple for the moment and just push my changes to <code>master</code> manually.</p>
+
+<footer>
+  &copy; June  6, 2015 Beerend Lauwers &lt;beerendlauwers@gmail.com&gt;
+</footer>
+
+        </div>
+        <div class="page-wrap" id="footer">
+            Site automatically generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

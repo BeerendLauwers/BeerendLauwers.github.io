@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Hakyll's functionField</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/custom.css" />
+        <link rel="stylesheet" type="text/css" href="../css/font-awesome.min.css">
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-64277210-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </head>
+    <body>
+        <div class="page-wrap">
+            <h1>Hakyll's functionField</h1>
+<p class="author">By <a href="http://beerendlauwers.be/">Beerend Lauwers</a></p>
+
+<h2 id="introduction">Introduction</h2>
+<p>Hakyll’s <code>functionField</code> function is not documented anywhere, but it is pretty neat. Let’s say you have this in a Hakyll template somewhere:</p>
+<pre><code>$translate(&quot;greetings&quot;)$</code></pre>
+<p>That will get parsed as a function call to a <code>Context a</code> that expects one or more <code>String</code> arguments. We can define such a <code>Context a</code> with <code>functionField</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">functionField ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> ([<span class="dt">String</span>] <span class="ot">-&gt;</span> <span class="dt">Item</span> a <span class="ot">-&gt;</span> <span class="dt">Compiler</span> <span class="dt">String</span>) <span class="ot">-&gt;</span> <span class="dt">Context</span> a</code></pre></div>
+<h2 id="example">Example</h2>
+<p>Here’s a very simple example I used:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">postCtx ::</span> <span class="dt">Context</span> <span class="dt">String</span>
+postCtx <span class="fu">=</span> functionField <span class="st">&quot;testing&quot;</span> (\args _ <span class="ot">-&gt;</span> error <span class="fu">$</span> show args) <span class="fu">&lt;&gt;</span> defaultContext</code></pre></div>
+<p>Putting the snippet below in a template and running it:</p>
+<pre><code>$testing(&quot;hello&quot;,&quot;test&quot;)$</code></pre>
+<p>Result:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">[<span class="kw">ERROR</span>] [<span class="st">&quot;hello&quot;</span>,<span class="st">&quot;test&quot;</span>]</code></pre></div>
+<p>Even better is that we can also pass other contexts:</p>
+<pre><code>$testing(&quot;hello&quot;,&quot;test&quot;,title)$</code></pre>
+<p>Result:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">[<span class="kw">ERROR</span>] [<span class="st">&quot;hello&quot;</span>,<span class="st">&quot;test&quot;</span>,<span class="st">&quot;Hakyll's functionField&quot;</span>]</code></pre></div>
+<p>In fact, we can pass in functions as well:</p>
+<pre><code>$testing(&quot;hello&quot;,&quot;test&quot;,testing(&quot;hi&quot;))$</code></pre>
+<p>Result:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">[<span class="kw">ERROR</span>] [<span class="st">&quot;hi&quot;</span>]</code></pre></div>
+<p>Unfortunately, that’s all we can do, because of the recursive call to <code>applyExpr</code> in the template processing module:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">    applyExpr ::</span> <span class="dt">TemplateExpr</span> <span class="ot">-&gt;</span> <span class="dt">Compiler</span> <span class="dt">ContextField</span>
+
+    applyExpr (<span class="dt">Ident</span> (<span class="dt">TemplateKey</span> k)) <span class="fu">=</span> context' k [] x
+
+    applyExpr (<span class="dt">Call</span> (<span class="dt">TemplateKey</span> k) args) <span class="fu">=</span> <span class="kw">do</span>
+        args' <span class="ot">&lt;-</span> mapM (\e <span class="ot">-&gt;</span> applyExpr e <span class="fu">&gt;&gt;=</span> getString e) args
+        context' k args' x
+
+    applyExpr (<span class="dt">StringLiteral</span> s) <span class="fu">=</span> return (<span class="dt">StringField</span> s)</code></pre></div>
+<h2 id="uses">Uses</h2>
+<p><code>functionField</code> allows us to introduce a custom processing function into our templates. For example, I want to relativize a URL in some JavaScript code, and the <code>relativizeURLs</code> function only focuses on specific tag attributes in HTML code.</p>
+<p>With <code>functionField</code>, I’m able to expose that functionality everywhere:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">relativizeUrl ::</span> <span class="dt">Context</span> a
+relativizeUrl <span class="fu">=</span> functionField <span class="st">&quot;relativizeUrl&quot;</span> <span class="fu">$</span> \args item <span class="ot">-&gt;</span>
+    <span class="kw">case</span> args <span class="kw">of</span>
+        [k] <span class="ot">-&gt;</span> <span class="kw">do</span>   route <span class="ot">&lt;-</span> getRoute <span class="fu">$</span> itemIdentifier item
+                    return <span class="fu">$</span> <span class="kw">case</span> route <span class="kw">of</span>
+                        <span class="dt">Nothing</span> <span class="ot">-&gt;</span> k
+                        <span class="dt">Just</span> r <span class="ot">-&gt;</span> rel k (toSiteRoot r)
+        _   <span class="ot">-&gt;</span> fail <span class="st">&quot;relativizeUrl only needs a single argument&quot;</span>
+     <span class="kw">where</span>
+        isRel x <span class="fu">=</span> <span class="st">&quot;/&quot;</span> <span class="ot">`L.isPrefixOf`</span> x <span class="fu">&amp;&amp;</span> not (<span class="st">&quot;//&quot;</span> <span class="ot">`L.isPrefixOf`</span> x)
+        rel x root <span class="fu">=</span> <span class="kw">if</span> isRel x <span class="kw">then</span> root <span class="fu">++</span> x <span class="kw">else</span> x
+        
+<span class="co">-- Add the functionality to our default context</span>
+<span class="ot">postCtx ::</span> <span class="dt">Context</span> <span class="dt">String</span>
+postCtx <span class="fu">=</span> relativizeUrl <span class="fu">&lt;&gt;</span> defaultContext</code></pre></div>
+<p>Calling <code>$relativizeUrl(&quot;/a/b/c/d&quot;)$</code> then results in a relativized URL in the compiled document. This function is available in my <a href="https://github.com/beerendlauwers/hakyll-extra"><code>hakyll-extra</code></a> package on Github.</p>
+
+<footer>
+  &copy; September 21, 2015 Beerend Lauwers &lt;beerendlauwers@gmail.com&gt;
+</footer>
+
+        </div>
+        <div class="page-wrap" id="footer">
+            Site automatically generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

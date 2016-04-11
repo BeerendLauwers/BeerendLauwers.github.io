@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Hacking on Hakyll - Part 1</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/custom.css" />
+        <link rel="stylesheet" type="text/css" href="../css/font-awesome.min.css">
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-64277210-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </head>
+    <body>
+        <div class="page-wrap">
+            <h1>Hacking on Hakyll - Part 1</h1>
+<p class="author">By <a href="http://beerendlauwers.be/">Beerend Lauwers</a></p>
+
+<h2 id="motivation">Motivation</h2>
+<p>I wanted to see how hard it was to add some new simple functionality to Hakyll: read a single file containing a list of <code>(Int,Int)</code>’s, one on each line. Then, take the first <code>Int</code> and of each and lump them together. (The idea is to use them to populate a data type later on.)</p>
+<h2 id="start">Start</h2>
+<p>First, I looked at <a href="https://hackage.haskell.org/package/hakyll-4.7.1.0">Hakyll’s documentation on Hackage</a>. <code>Hakyll.Web.CompressCss</code> was very useful to understand how I could lift a pure function to a function that works in <code>Compiler</code>:</p>
+<p>(code here)</p>
+<h2 id="writing-the-readtuples-function">Writing the <code>readTuples</code> function</h2>
+<p>So, what I first needed to do was to create the <code>readTuples</code> function:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">readTuples ::</span> <span class="dt">Compiler</span> (<span class="dt">Item</span> <span class="dt">String</span>)
+readTuples <span class="fu">=</span> fmap readTuples' <span class="fu">&lt;$&gt;</span> getResourceString
+
+<span class="ot">readTuples' ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span>
+readTuples' xs <span class="fu">=</span> 
+  <span class="kw">let</span> res <span class="fu">=</span> map (\x <span class="ot">-&gt;</span> (read x)<span class="ot">::</span>(<span class="dt">Int</span>,<span class="dt">Int</span>)) (lines xs)
+  <span class="kw">in</span>  concatMap (show <span class="fu">.</span> fst) res</code></pre></div>
+<p>(I just put this in <code>site.hs</code>, by the way.)</p>
+<p><code>readTuples'</code> is simple: take the file contents (<code>xs</code>) and apply <code>lines</code> to it to get a list of <code>String</code>s. Then, it <code>read</code>s each <code>String</code>, casting it to an <code>(Int,Int)</code>.<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> Finally, the first element of each tuple is taken and turned into a <code>String</code>. All those are then concatenated together.</p>
+<p><code>readTuples</code> then applies the aforementioned function to <code>getResourceString</code>, which provides a <code>String</code> version of the file’s contents.</p>
+<h2 id="using-it-in-the-site-compiler">Using it in the site compiler</h2>
+<p>We’ll want to use <code>match</code>, because we take an existing file and transform it. So, let’s add this line to <code>main</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">match <span class="st">&quot;testing/*&quot;</span> <span class="fu">$</span> <span class="kw">do</span></code></pre></div>
+<p>Then, we need to say where the processed file is going to end up. This is what routes are for. For the moment, I’m just going to modify the file’s contents when building the site, but not its location or name. That’s what <code>idRoute</code> does: just use the same directory and file name as that of the input file.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">match <span class="st">&quot;testing/*&quot;</span> <span class="fu">$</span> <span class="kw">do</span>
+    route idRoute</code></pre></div>
+<p>Then, we need to say what we actually want to <em>do</em> with the file’s contents by using <code>compile</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">compile ::</span> <span class="dt">Compiler</span> (<span class="dt">Item</span> a) <span class="ot">-&gt;</span> <span class="dt">Rules</span>()</code></pre></div>
+<p><code>readTuples</code> slots in here nicely:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">readTuples ::</span> <span class="dt">Compiler</span> (<span class="dt">Item</span> <span class="dt">String</span>)</code></pre></div>
+<p>So, we end up with:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">match <span class="st">&quot;testing/*&quot;</span> <span class="fu">$</span> <span class="kw">do</span>
+    route idRoute
+    compile <span class="fu">$</span> readTuples</code></pre></div>
+<p>That’s it! Recompile <code>site.hs</code> and run it:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">ghc</span> --make -fforce-recomp site.hs
+<span class="kw">site</span> build</code></pre></div>
+<h2 id="example-input">Example input</h2>
+<p>My test file is <code>testing/abcd.txt</code><a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a>:</p>
+<pre><code>(1,2)
+(4,5)
+(6,8)</code></pre>
+<p>After compilation, <code>_site/testing/abcd.txt</code> contains:</p>
+<pre><code>146</code></pre>
+<h2 id="conclusion">Conclusion</h2>
+<p>It’s not really so hard! Just define a pure function that does a transformation, lift it to <code>Compiler</code> and pass that to <code>compile</code>.</p>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p><code>read x</code> will cause an error if parsing fails, so use something safer if you actually want to use this in a program.<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p><code>read</code> doesn’t seem to care if the returns are CRLF or LF:</p>
+<pre><code>readTuples' &quot;(1,3)\n(4,6)&quot; = &quot;14&quot;
+readTuples' &quot;(1,3)\r\n(4,6) = &quot;14&quot;</code></pre>
+<a href="#fnref2">↩</a></li>
+</ol>
+</div>
+
+<footer>
+  &copy; June 25, 2015 Beerend Lauwers &lt;beerendlauwers@gmail.com&gt;
+</footer>
+
+        </div>
+        <div class="page-wrap" id="footer">
+            Site automatically generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

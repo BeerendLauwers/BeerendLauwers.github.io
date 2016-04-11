@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Installing Atom + Haskell extensions: an experiment</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/custom.css" />
+        <link rel="stylesheet" type="text/css" href="../css/font-awesome.min.css">
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-64277210-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </head>
+    <body>
+        <div class="page-wrap">
+            <h1>Installing Atom + Haskell extensions: an experiment</h1>
+<p class="author">By <a href="http://beerendlauwers.be/">Beerend Lauwers</a></p>
+
+<p>I wanted to see how easy it would be to install the recommended Haskell plugins on Atom, using Stack.</p>
+<div class="note">
+<p><strong>This is not a tutorial or how-to</strong>. Your best bet for getting a working <code>ghc-mod</code> with Stack on Windows is:</p>
+<ul>
+<li><code>stack</code> &gt;= 0.1.4.0</li>
+<li><code>ghc</code> &gt;= 7.10</li>
+<li><code>ghc-mod</code> &gt;= 5.4 (<a href="https://mail.haskell.org/pipermail/haskell-cafe/2015-September/121412.html">see mailing list announcement</a>)</li>
+<li>Atom &gt;= 1.0</li>
+</ul>
+</div>
+<h2 id="ide-haskell">ide-haskell</h2>
+<p>Googling for “Atom Haskell” gives me this plugin: <a href="https://atom.io/packages/ide-haskell">ide-haskell</a></p>
+<p>From the page:</p>
+<blockquote>
+<p>To install:</p>
+<p><code>apm install language-haskell haskell-ghc-mod ide-haskell-cabal ide-haskell autocomplete-haskell</code></p>
+</blockquote>
+<h3 id="attempt-via-bash-shell">Attempt via bash shell</h3>
+<p>In git bash:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="kw">./apm</span> install language-haskell haskell-ghc-mod ide-haskell-cabal ide-haskell autocomplete-haskell
+<span class="kw">Installing</span> language-haskell to C:\Users\blauwers\.atom\packages failed
+
+<span class="kw">language-haskell@1.4.12</span> postinstall C:\Users\blauwers\AppData\Local\Temp\apm-install-dir-115106-7516-4i9g01\node_modules\language-haskell
+<span class="kw">coffee</span> src/haskell.coffee
+
+<span class="kw">npm</span> WARN addRemoteGit Error: Command failed:
+<span class="kw">npm</span> WARN addRemoteGit     at ChildProcess.exithandler (child_process.js:658:15)
+<span class="kw">npm</span> WARN addRemoteGit     at ChildProcess.emit (events.js:98:17)
+<span class="kw">npm</span> WARN addRemoteGit     at maybeClose (child_process.js:766:16)
+<span class="kw">npm</span> WARN addRemoteGit     at Socket.<span class="kw">&lt;</span>anonymous<span class="kw">&gt;</span> (child_process.js:979:11)
+<span class="kw">npm</span> WARN addRemoteGit     at Socket.emit (events.js:95:17)
+<span class="kw">npm</span> WARN addRemoteGit     at Pipe.close (net.js:466:12)
+<span class="kw">npm</span> WARN addRemoteGit  git://github.com/michaelficarra/cscodegen.git#73fd7202ac086c26f18c9d56f025b18b3c6f5383 resetting remote C:\Users\blauwers\.atom\.apm\_git-remotes\git-github-com-michaelficarra-cscodegen-git-79ca3b9e because of error: { [Error: Command failed: ] killed: false, code: 1, signal: null }
+<span class="kw">npm</span> ERR! git clone --template=C:\Users\blauwers\.atom\.apm\_git-remotes\_templates --mirror git://github.com/michaelficarra/cscodegen.git C:\Users\blauwers\.atom\.apm\_git-remotes\git-github-com-michaelficarra-cscodegen-git-79ca3b9e: Cloning into bare repository <span class="st">'C:\Users\blauwers\.atom\.apm\_git-remotes\git-github-com-michaelficarra-cscodegen-git-79ca3b9e'</span>...
+<span class="kw">npm</span> ERR! git clone --template=C:\Users\blauwers\.atom\.apm\_git-remotes\_templates --mirror git://github.com/michaelficarra/cscodegen.git C:\Users\blauwers\.atom\.apm\_git-remotes\git-github-com-michaelficarra-cscodegen-git-79ca3b9e: fatal: unable to connect to github.com:
+<span class="kw">npm</span> ERR! git clone --template=C:\Users\blauwers\.atom\.apm\_git-remotes\_templates --mirror git://github.com/michaelficarra/cscodegen.git C:\Users\blauwers\.atom\.apm\_git-remotes\git-github-com-michaelficarra-cscodegen-git-79ca3b9e: github.com[0: 192.30.252.130]: errno=No error
+<span class="kw">npm</span> WARN optional dep failed, continuing cscodegen@git://github.com/michaelficarra/cscodegen.git#73fd7202ac086c26f18c9d56f025b18b3c6f5383
+<span class="st">'coffee'</span> <span class="kw">is</span> not recognized as an internal or external command,
+<span class="kw">operable</span> program or batch file.
+<span class="kw">npm</span> ERR! Windows_NT 6.1.7601
+<span class="kw">npm</span> ERR! argv <span class="st">&quot;C:</span><span class="dt">\\</span><span class="st">Users</span><span class="dt">\\</span><span class="st">blauwers</span><span class="dt">\\</span><span class="st">AppData</span><span class="dt">\\</span><span class="st">Local</span><span class="dt">\\</span><span class="st">atom</span><span class="dt">\\</span><span class="st">app-1.1.0</span><span class="dt">\\</span><span class="st">resources</span><span class="dt">\\</span><span class="st">app</span><span class="dt">\\</span><span class="st">apm</span><span class="dt">\\</span><span class="st">bin</span><span class="dt">\\</span><span class="st">node.exe&quot;</span> <span class="st">&quot;C:</span><span class="dt">\\</span><span class="st">Users</span><span class="dt">\\</span><span class="st">blauwers</span><span class="dt">\\</span><span class="st">AppData</span><span class="dt">\\</span><span class="st">Local</span><span class="dt">\\</span><span class="st">atom</span><span class="dt">\\</span><span class="st">app-1.1.0</span><span class="dt">\\</span><span class="st">resources</span><span class="dt">\\</span><span class="st">app</span><span class="dt">\\</span><span class="st">apm</span><span class="dt">\\</span><span class="st">node_modules</span><span class="dt">\\</span><span class="st">npm</span><span class="dt">\\</span><span class="st">bin</span><span class="dt">\\</span><span class="st">npm-cli.js&quot;</span> <span class="st">&quot;--globalconfig&quot;</span> <span class="st">&quot;C:</span><span class="dt">\\</span><span class="st">Users</span><span class="dt">\\</span><span class="st">blauwers</span><span class="dt">\\</span><span class="st">.atom</span><span class="dt">\\</span><span class="st">.apm</span><span class="dt">\\</span><span class="st">.apmrc&quot;</span> <span class="st">&quot;--userconfig&quot;</span> <span class="st">&quot;C:</span><span class="dt">\\</span><span class="st">Users</span><span class="dt">\\</span><span class="st">blauwers</span><span class="dt">\\</span><span class="st">.atom</span><span class="dt">\\</span><span class="st">.apmrc&quot;</span> <span class="st">&quot;install&quot;</span> <span class="st">&quot;C:</span><span class="dt">\\</span><span class="st">Users</span><span class="dt">\\</span><span class="st">blauwers</span><span class="dt">\\</span><span class="st">AppData</span><span class="dt">\\</span><span class="st">Local</span><span class="dt">\\</span><span class="st">Temp</span><span class="dt">\\</span><span class="st">d-115106-7516-1e496pn</span><span class="dt">\\</span><span class="st">package.tgz&quot;</span> <span class="st">&quot;--target=0.30.7&quot;</span> <span class="st">&quot;--arch=ia32&quot;</span> <span class="st">&quot;--msvs_version=2012&quot;</span>
+<span class="kw">npm</span> ERR! node v0.10.40
+<span class="kw">npm</span> ERR! npm  v2.13.3
+<span class="kw">npm</span> ERR! code ELIFECYCLE
+
+<span class="kw">npm</span> ERR! language-haskell@1.4.12 postinstall: <span class="kw">`coffee</span> src/haskell.coffee<span class="kw">`</span>
+<span class="kw">npm</span> ERR! Exit status 1
+<span class="kw">npm</span> ERR!
+<span class="kw">npm</span> ERR! Failed at the language-haskell@1.4.12 postinstall script <span class="st">'coffee src/haskell.coffee'</span>.
+<span class="kw">npm</span> ERR! This is most likely a problem with the language-haskell package,
+<span class="kw">npm</span> ERR! not with npm itself.
+<span class="kw">npm</span> ERR! Tell the author that this fails on your system:
+<span class="kw">npm</span> ERR!     coffee src/haskell.coffee
+<span class="kw">npm</span> ERR! You can get their info via:
+<span class="kw">npm</span> ERR!     npm owner ls language-haskell
+<span class="kw">npm</span> ERR! There is likely additional logging output above.</code></pre></div>
+<p>Woo. Okay, let’s try via Atom itself.</p>
+<h3 id="via-atom-gui">Via Atom GUI</h3>
+<h4 id="language-haskell">language-haskell</h4>
+<div class="figure">
+<img src="../images/atom/language-haskell.png" alt="language-haskell" />
+<p class="caption">language-haskell</p>
+</div>
+<p>Ok, that installed properly.</p>
+<h4 id="haskell-ghc-mod">haskell-ghc-mod</h4>
+<div class="figure">
+<img src="../images/atom/ghc-mod-error.png" alt="haskell-ghc-mod" />
+<p class="caption">haskell-ghc-mod</p>
+</div>
+<p>Oh dear. Googling gives me this: <a href="https://github.com/atom-haskell/haskell-ghc-mod/issues/43">Github issue: install failed</a></p>
+<blockquote>
+<p>Did you install it?</p>
+</blockquote>
+<p>Ah.</p>
+<p><a href="https://atom.io/packages/haskell-ghc-mod">haskell-ghc-mod</a> says:</p>
+<blockquote>
+<p>You need to have <code>ghc-mod</code>, <code>ghc-modi</code> (part of <code>Ghc-Mod</code>) and <code>hlint</code> executables installed on your system. <code>ghc-mod</code> needs to be able to find <code>hlint</code> (eiter add <code>hlint</code> directory to PATH, or install both in the same cabal sandbox).</p>
+</blockquote>
+<p>Okay, let’s build it via Stack:</p>
+<p>Windows shell:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">C</span>:\Users\blauwers\AppData\Local\atom\bin<span class="kw">&gt;</span>stack install ghc-mod
+<span class="kw">Run</span> from outside a project, using implicit global config
+<span class="kw">Using</span> resolver: lts-2.21 from global config file: C:\Users\blauwers\AppData\Roam
+<span class="kw">ing</span>\stack\global\stack.yaml
+<span class="kw">Caching</span> build plan
+<span class="kw">Continuing</span> despite missing tool: msys2
+<span class="kw">Setting</span> codepage to UTF-8 (65001) <span class="kw">to</span> ensure correct output from GHC
+<span class="kw">Progress</span>: 0/54
+<span class="kw">...</span>
+<span class="kw">Completed</span> all 54 actions.
+<span class="kw">Installation</span> path C:\Users\blauwers\AppData\Roaming\local\bin<span class="dt">\ </span>not found in PATH environment variable
+<span class="kw">Copying</span> from C:\Users\blauwers\AppData\Roaming\stack\snapshots\i386-windows\lts-2.21\7.8.4\bin\ghc-mod.exe 
+    <span class="kw">to</span> C:\Users\blauwers\AppData\Roaming\local\bin\ghc-mod.exe
+<span class="kw">Copying</span> from C:\Users\blauwers\AppData\Roaming\stack\snapshots\i386-windows\lts-2.21\7.8.4\bin\ghc-modi.exe 
+    <span class="kw">to</span> C:\Users\blauwers\AppData\Roaming\local\bin\ghc-modi.exe
+
+<span class="kw">Copied</span> executables to C:\Users\blauwers\AppData\Roaming\local\bin\:
+<span class="kw">-</span> ghc-modi.exe
+<span class="kw">-</span> ghc-mod.exe
+
+<span class="kw">C</span>:\Users\blauwers\AppData\Local\atom\bin<span class="kw">&gt;</span></code></pre></div>
+<p>Okay, I have to add that path to my PATH environment variable. Let’s test:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">C</span>:\Users\blauwers<span class="kw">&gt;</span>ghc-mod --version
+<span class="kw">ghc-mod</span> version 5.2.1.2 compiled by GHC 7.8.4
+
+<span class="kw">C</span>:\Users\blauwers<span class="kw">&gt;</span>ghc-modi
+<span class="kw">fdf</span>
+<span class="kw">OK</span>
+<span class="kw">NG</span> BUG: user interrupt
+
+<span class="kw">C</span>:\Users\blauwers<span class="kw">&gt;</span></code></pre></div>
+<p>Looks good! Atom still gives me those error messages, though, so let’s restart.</p>
+<p>Okay, I get the green after a restart:</p>
+<div class="figure">
+<img src="../images/atom/ghc-mod-fixed.png" alt="haskell-ghc-mod runs!" />
+<p class="caption">haskell-ghc-mod runs!</p>
+</div>
+<h4 id="ide-haskell-cabal">ide-haskell-cabal</h4>
+<p>Installed without a hitch.</p>
+<h4 id="ide-haskell-1">ide-haskell</h4>
+<p>Same.</p>
+<h4 id="autocomplete-haskell">autocomplete-haskell</h4>
+<p>Same! I’m surprised.</p>
+<h2 id="trying-it-out">Trying it out</h2>
+<p>I loaded up the code branch of the repository that generates this website in Atom as a project. After selecting <code>site.hs</code>, I get… Not much. A message that tells me the editor isn’t responding.</p>
+<p>Let’s see if there are any known issues:</p>
+<blockquote>
+<p>There can be some problems with <code>ghc-modi</code> upstream, most notably, it does not work on paths with whitespace.</p>
+</blockquote>
+<p>Ah. Disabling it in the settings and restarting the plugin does seem to allow <code>site.hs</code> to load:</p>
+<div class="figure">
+<img src="../images/atom/ghc-mod-errors.png" alt="haskell-ghc-mod user error (ghc not found)" />
+<p class="caption">haskell-ghc-mod user error (ghc not found)</p>
+</div>
+<p>Hmm.</p>
+<p><code>stack path</code> tells me:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">ghc-paths</span>: C:\Users\blauwers\AppData\Local\Programs\stack\i386-windows</code></pre></div>
+<p>None of the <code>bin</code> folders of the GHC’s there are in my path, so more path pollution is in order!</p>
+<p>Ok, having added GHC to my path and restarting Atom, I get these messages:</p>
+<div class="figure">
+<img src="../images/atom/ghc-mod-cabal-errors.png" alt="ghc-mod-cabal-errors" />
+<p class="caption">ghc-mod-cabal-errors</p>
+</div>
+<p>Here’s the error message:</p>
+<blockquote>
+<p>launching operating system process <code>cabal configure</code> failed: cabal: readProcessWithExitCode: does not exist (No such file or directory)</p>
+</blockquote>
+<p>Googling around gives me these results:</p>
+<ul>
+<li><a href="https://github.com/kazu-yamamoto/ghc-mod/issues/498">ghc-mod issue: using ghc-mod with stack</a></li>
+<li><a href="https://github.com/atom-haskell/haskell-ghc-mod/issues/44">haskell-ghc-mod issue: haskell-ghc-mod doesn’t support local GHC using Stack</a></li>
+</ul>
+<h2 id="conclusion">Conclusion</h2>
+<p>I think the best course of action is to nuke it all and start with a more recent version of <code>ghc-mod</code>, seeing as Stack support was only introduced in 5.4. I’ll revisit this another time.</p>
+
+<footer>
+  &copy; November  6, 2015 Beerend Lauwers &lt;beerendlauwers@gmail.com&gt;
+</footer>
+
+        </div>
+        <div class="page-wrap" id="footer">
+            Site automatically generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

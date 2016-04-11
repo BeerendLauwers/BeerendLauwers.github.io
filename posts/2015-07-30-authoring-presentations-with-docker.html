@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Authoring presentations with Docker, reveal.js and Pandoc</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/custom.css" />
+        <link rel="stylesheet" type="text/css" href="../css/font-awesome.min.css">
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-64277210-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </head>
+    <body>
+        <div class="page-wrap">
+            <h1>Authoring presentations with Docker, reveal.js and Pandoc</h1>
+<p class="author">By <a href="http://beerendlauwers.be/">Beerend Lauwers</a></p>
+
+<p>I’ve always liked <a href="https://github.com/hakimel/reveal.js/">reveal.js</a>’ style of HTML5 presentations, and I know you can write them in MarkDown as well. I don’t want to install NodeJS and Python and all the other dependencies to get a local development environment going, so I’ll try and use Docker.</p>
+<h2 id="getting-a-reveal.js-testing-server-up-and-running-with-docker-failed">Getting a reveal.js testing server up and running with Docker (failed)</h2>
+<p>First off, <a href="https://registry.hub.docker.com/u/danidemi/docker-reveal.js/">I downloaded this docker image</a>:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">docker</span> pull docker-reveal.js:latest
+<span class="kw">Error</span>: image library/docker-reveal.js:latest not found</code></pre></div>
+<p>Good start.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="kw">git</span> clone https://github.com/danidemi/docker-reveal.js.git
+$ <span class="kw">cd</span> docker-reveal.js
+$ <span class="kw">docker</span> build -t <span class="st">&quot;danidemi/docker-reveal.js:latest&quot;</span> .</code></pre></div>
+<p>That works. Took AGES, though.</p>
+<p>Next up, the tutorial says to</p>
+<blockquote>
+<p>Run a Docker container with this command.</p>
+</blockquote>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">docker</span> run -d -v //c/Users/blauwers/AppData/Roaming/hakyll/reveal:/slides/ -p 8000:8000 <span class="st">&quot;danidemi/docker-reveal.js:latest&quot;</span></code></pre></div>
+<p>Then, I tried to get the <code>pandoc</code> install in the container to compile my MarkDown file:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">(docker</span> exec -i <span class="ot">$dockerid</span> /bin/sh -c <span class="st">&quot;pandoc -t revealjs -s -o /slides/index.html&quot;</span><span class="kw">)</span> <span class="kw">&lt;</span> <span class="kw">index.md</span></code></pre></div>
+<p>Doesn’t work. The container keeps dying. Let’s inspect with <code>-i</code>:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">docker</span> run -i -v //c/Users/blauwers/AppData/Roaming/hakyll/reveal:/slides/ -p 8000:8000 <span class="st">&quot;danidemi/docker-reveal.js:latest&quot;</span></code></pre></div>
+<blockquote>
+<p>(a whole bunch of retries to find <code>index.html</code>)</p>
+</blockquote>
+<p>Ah, NodeJS keeps trying to look for <code>index.html</code>, crashing due to running out of stack size.</p>
+<p>Let’s add index.html and try again.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">touch</span> index.html</code></pre></div>
+<p>Ok, now it doesn’t crash anymore (this was apparently in the tutorial, woops).</p>
+<p>Unfortunately, the <code>docker exec</code> command still doesn’t work, it’s trying to use my Git’s <code>bin/sh</code> in Program Files.</p>
+<h2 id="docker-windows-install-of-pandoc">Docker + Windows install of <code>pandoc</code></h2>
+<p>Ok, screw it, let’s just install <a href="http://pandoc.org/installing.html"><code>pandoc</code> for Windows</a>.</p>
+<p>Now, let’s go to the folder and run it there:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">cd</span> C:\Users\blauwers\AppData\Roaming\hakyll\reveal
+<span class="kw">C</span>:\Users\blauwers\AppData\Roaming\hakyll\reveal<span class="kw">&gt;</span>pandoc -t revealjs -s -o index.html index.md</code></pre></div>
+<p>Ok, now to refresh the web page of the docker instance:</p>
+<div class="image small">
+<div class="figure">
+<img src="../images/presentation/first.jpg" alt="First successful compilation" />
+<p class="caption">First successful compilation</p>
+</div>
+</div>
+<p>Seems to work!</p>
+<h2 id="windows-install-of-pandoc-copy-of-the-git-repo-of-reveal.js">Windows install of <code>pandoc</code> + copy of the Git repo of reveal.js</h2>
+<p>Wow, what a hassle. Can’t I just use the static version of reveal.js?</p>
+<p><a href="https://github.com/hakimel/reveal.js/releases">Release overview</a> -&gt; zip -&gt; put <code>index.md</code> in it -&gt; compile!</p>
+<p>Just a white screen.</p>
+<p>Hmm, seems like pandoc-compiled presentations search for reveal.js in a subfolder called <code>reveal.js</code>.</p>
+<p>Let’s plonk the <code>index.md</code> file just next to the <code>reveal.js</code> folder.</p>
+<p>Ok, now I’m getting my text. But the presentation functionality isn’t present, nor is the CSS styling. Two more changes are required:</p>
+<ul>
+<li>Change <code>reveal.js/js/reveal.js</code> to <code>reveal.js/js/reveal.min.js</code>.</li>
+<li>Same for <code>reveal.js/css/reveal.css</code>, to <code>reveal.js/css/reveal.min.css</code>.</li>
+</ul>
+<p><em>(Of course, actually minifying it would be a good idea if we’d actually publish this presentation.)</em></p>
+<p>Great, works on <code>localhost</code> now without a docker image!</p>
+<h2 id="switching-themes-not-working">Switching themes (not working)</h2>
+<p>Let’s try another theme:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">pandoc</span> -t revealjs -s -V theme=moon -o index.html index.md</code></pre></div>
+<p>Hmm, can’t switch themes. Weird.</p>
+<p>It’s in the HTML, in any case:</p>
+<pre><code>theme: 'moon', // available themes are in /css/theme</code></pre>
+<p>I’ll leave it for the moment.</p>
+<h2 id="swapping-out-pandocs-syntax-highlighting-for-highlight.js">Swapping out <code>pandoc</code>’s syntax highlighting for <code>highlight.js</code></h2>
+<p>The Haskell code is really unreadable:</p>
+<div class="image small">
+<div class="figure">
+<img src="../images/presentation/haskell-bad.png" alt="Unreadable Haskell code!" />
+<p class="caption">Unreadable Haskell code!</p>
+</div>
+</div>
+<p>Let’s disable it:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">pandoc</span> -t revealjs -s --no-highlight -o index.html index.md</code></pre></div>
+<p>How to get <code>highlight.js</code> functionality in? <a href="http://www.artembutusov.com/pandoc-markdown-syntax-highlighting-with-highlight-js/">Let’s google around.</a></p>
+<blockquote>
+<p>You can use snippet below, insert it in the top of markdown file:</p>
+</blockquote>
+<div class="sourceCode"><pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;link</span><span class="ot"> rel=</span><span class="st">&quot;stylesheet&quot;</span><span class="ot"> href=</span><span class="st">&quot;https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css&quot;</span><span class="kw">&gt;</span>
+<span class="kw">&lt;link</span><span class="ot"> rel=</span><span class="st">&quot;stylesheet&quot;</span><span class="ot"> href=</span><span class="st">&quot;https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/styles/monokai_sublime.min.css&quot;</span><span class="kw">&gt;</span>
+<span class="kw">&lt;script</span><span class="ot"> src=</span><span class="st">&quot;https://code.jquery.com/jquery-2.1.3.min.js&quot;</span><span class="kw">&gt;&lt;/script&gt;</span>
+<span class="kw">&lt;script</span><span class="ot"> src=</span><span class="st">&quot;https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/highlight.min.js&quot;</span><span class="kw">&gt;&lt;/script&gt;</span>
+<span class="kw">&lt;script</span><span class="ot"> src=</span><span class="st">&quot;https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/languages/javascript.min.js&quot;</span><span class="kw">&gt;&lt;/script&gt;</span>
+<span class="kw">&lt;script</span><span class="ot"> src=</span><span class="st">&quot;https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/languages/php.min.js&quot;</span><span class="kw">&gt;&lt;/script&gt;</span>
+<span class="kw">&lt;script</span><span class="ot"> src=</span><span class="st">&quot;https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/languages/sql.min.js&quot;</span><span class="kw">&gt;&lt;/script&gt;</span>
+<span class="kw">&lt;script</span><span class="ot"> src=</span><span class="st">&quot;https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.4/languages/xml.min.js&quot;</span><span class="kw">&gt;&lt;/script&gt;</span>
+
+<span class="kw">&lt;style&gt;</span>body <span class="kw">{</span> <span class="kw">padding:</span> <span class="dt">20px</span> <span class="kw">}</span> pre <span class="kw">{</span> <span class="kw">padding:</span> <span class="dt">0</span> <span class="kw">}&lt;/style&gt;</span>
+
+<span class="kw">&lt;script&gt;</span>
+<span class="at">$</span>(<span class="kw">function</span>() <span class="op">{</span>
+    <span class="at">$</span>(<span class="st">&quot;pre &gt; code&quot;</span>).<span class="at">each</span>(<span class="kw">function</span>(i<span class="op">,</span> block) <span class="op">{</span>
+        <span class="kw">var</span> codeClass <span class="op">=</span> <span class="at">$</span>(<span class="kw">this</span>).<span class="at">parent</span>().<span class="at">attr</span>(<span class="st">&quot;class&quot;</span>)<span class="op">;</span>
+        <span class="cf">if</span> (codeClass <span class="op">==</span> <span class="kw">null</span> <span class="op">||</span> codeClass <span class="op">===</span> <span class="st">&quot;&quot;</span>) <span class="op">{</span>
+            <span class="at">$</span>(<span class="kw">this</span>).<span class="at">addClass</span>(<span class="st">&quot;hljs&quot;</span>)<span class="op">;</span>
+        <span class="op">}</span> <span class="cf">else</span> <span class="op">{</span>
+            <span class="kw">var</span> map <span class="op">=</span> <span class="op">{</span>
+                <span class="dt">js</span><span class="op">:</span> <span class="st">&quot;javascript&quot;</span>
+            <span class="op">};</span>
+            <span class="cf">if</span> (map[codeClass]) <span class="op">{</span>
+                codeClass <span class="op">=</span> map[codeClass]<span class="op">;</span>
+            <span class="op">}</span>
+            <span class="at">$</span>(<span class="kw">this</span>).<span class="at">addClass</span>(codeClass)<span class="op">;</span>
+            <span class="va">hljs</span>.<span class="at">highlightBlock</span>(<span class="kw">this</span>)<span class="op">;</span>
+        <span class="op">}</span>
+    <span class="op">}</span>)<span class="op">;</span>
+<span class="op">}</span>)<span class="op">;</span>
+<span class="op">&lt;</span><span class="ss">/script&gt;</span></code></pre></div>
+<p>Nice.</p>
+<div class="image small">
+<div class="figure">
+<img src="../images/presentation/haskell-good.png" alt="Readable Haskell code!" />
+<p class="caption">Readable Haskell code!</p>
+</div>
+</div>
+<p>That’s a lot better!</p>
+
+<footer>
+  &copy; July 30, 2015 Beerend Lauwers &lt;beerendlauwers@gmail.com&gt;
+</footer>
+
+        </div>
+        <div class="page-wrap" id="footer">
+            Site automatically generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

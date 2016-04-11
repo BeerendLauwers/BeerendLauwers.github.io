@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>Hakyll and error messages</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/custom.css" />
+        <link rel="stylesheet" type="text/css" href="../css/font-awesome.min.css">
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-64277210-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </head>
+    <body>
+        <div class="page-wrap">
+            <h1>Hakyll and error messages</h1>
+<p class="author">By <a href="http://beerendlauwers.be/">Beerend Lauwers</a></p>
+
+<h2 id="the-problem">The problem</h2>
+<p>During site compilation, Hakyll may stop with an error message like the following:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">[<span class="kw">ERROR</span>] Missing field <span class="ot">$translationFor</span>$ in context for item content/fr/index.html</code></pre></div>
+<p>However, the <em>actual</em> reason may be something different entirely.</p>
+<h2 id="the-solution">The solution</h2>
+<p>To find out, run your build command again with the <code>-v</code> flag:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">[<span class="kw">DEBUG</span>] Hakyll.Core.Compiler.Internal: Alternative failed: 
+    <span class="kw">translation</span> set en not found.
+[<span class="kw">DEBUG</span>] Hakyll.Core.Compiler.Internal: Alternative failed: 
+    <span class="kw">Missing</span> field <span class="ot">$translationFor</span>$ in context for item content/fr/index.html
+[<span class="kw">DEBUG</span>] Hakyll.Core.Compiler.Internal: Adding dependency: 
+    <span class="kw">IdentifierDependency</span> content/fr/index.html
+[<span class="kw">DEBUG</span>] Hakyll.Core.Compiler.Internal: Alternative failed: 
+    <span class="kw">Missing</span> field <span class="ot">$translationFor</span>$ in context for item content/fr/index.html
+[<span class="kw">ERROR</span>] Missing field <span class="ot">$translationFor</span>$ in context for item content/fr/index.html</code></pre></div>
+<p>(In my case, I deliberately tried to get an error to test a <a href="../posts/2015-09-21-hakylls-functionfield.html"><code>functionField</code></a>.)</p>
+<h2 id="the-internals">The internals</h2>
+<p>The reason for this is that <code>Compiler</code> has an <code>Alternative</code> instance that will check for:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Alternative</span> <span class="dt">Compiler</span> <span class="kw">where</span>
+    empty   <span class="fu">=</span> compilerThrow []
+    x <span class="fu">&lt;|&gt;</span> y <span class="fu">=</span> compilerCatch x <span class="fu">$</span> \es <span class="ot">-&gt;</span> <span class="kw">do</span>
+        logger <span class="ot">&lt;-</span> compilerLogger <span class="fu">&lt;$&gt;</span> compilerAsk
+        forM_ es <span class="fu">$</span> \e <span class="ot">-&gt;</span> compilerUnsafeIO <span class="fu">$</span> Logger.debug logger <span class="fu">$</span>
+            <span class="st">&quot;Hakyll.Core.Compiler.Internal: Alternative failed: &quot;</span> <span class="fu">++</span> e
+        y</code></pre></div>
+<p>If a <code>Context</code> encounters a failure (wrong amount of arguments, a lookup gave back <code>Nothing</code>, anything that would merit failing with a call to <code>fail</code>), the error message will be logged to the debug log. Then, it tries the next option (<code>y</code>).</p>
+<p>The <code>Monoid</code> instance for <code>Compiler</code> uses <code>&lt;|&gt;</code> here:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">instance</span> <span class="dt">Monoid</span> (<span class="dt">Context</span> a) <span class="kw">where</span>
+    mempty                          <span class="fu">=</span> missingField
+    mappend (<span class="dt">Context</span> f) (<span class="dt">Context</span> g) <span class="fu">=</span> <span class="dt">Context</span> <span class="fu">$</span> \k a i <span class="ot">-&gt;</span> f k a i <span class="fu">&lt;|&gt;</span> g k a i</code></pre></div>
+<p>In other words, <code>Context</code>s are tried one after the other, until there is a success. <code>missingField</code> is a <code>Context</code> wrapper around failure:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">missingField ::</span> <span class="dt">Context</span> a
+missingField <span class="fu">=</span> <span class="dt">Context</span> <span class="fu">$</span> \k _ i <span class="ot">-&gt;</span> fail <span class="fu">$</span>
+    <span class="st">&quot;Missing field $&quot;</span> <span class="fu">++</span> k <span class="fu">++</span> <span class="st">&quot;$ in context for item &quot;</span> <span class="fu">++</span>
+    show (itemIdentifier i)</code></pre></div>
+<p>The error message looks familiar, no?</p>
+<p>It’s also the last element in the definition of <code>defaultContext</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">defaultContext ::</span> <span class="dt">Context</span> <span class="dt">String</span>
+defaultContext <span class="fu">=</span>
+    bodyField     <span class="st">&quot;body&quot;</span>     <span class="ot">`mappend`</span>
+    metadataField            <span class="ot">`mappend`</span>
+    urlField      <span class="st">&quot;url&quot;</span>      <span class="ot">`mappend`</span>
+    pathField     <span class="st">&quot;path&quot;</span>     <span class="ot">`mappend`</span>
+    titleField    <span class="st">&quot;title&quot;</span>    <span class="ot">`mappend`</span>
+    missingField</code></pre></div>
+<p>Hence, its error message will be the last one in the debug log. Why are the others not shown? This is discussed in <a href="https://github.com/jaspervdj/hakyll/issues/126">this Github issue</a>:</p>
+<blockquote>
+<p><strong>jaspervdj</strong></p>
+<p>Some discussion. The problem is that the user composes a lot of different compilers using <code>Context</code>s <code>mappend</code>, which is <code>&lt;|&gt;</code> for <code>Compiler</code>. If we print the errors for each alternative, this would cause a huge amount of output – there’s no real way to figure out which output matters and which not.</p>
+<p>Would it be sensible to always print the last error, but print all errors when running with <code>-v</code>?</p>
+</blockquote>
+<p>So, in short: if an error occurs, always re-run with <code>-v</code> to get to the real source of the problem.</p>
+
+<footer>
+  &copy; September 25, 2015 Beerend Lauwers &lt;beerendlauwers@gmail.com&gt;
+</footer>
+
+        </div>
+        <div class="page-wrap" id="footer">
+            Site automatically generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>
