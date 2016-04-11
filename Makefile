@@ -1,31 +1,21 @@
 CNAME := beerendlauwers.be
 REPO := git@github.com:beerendlauwers/beerendlauwers.github.io.git
 
-EXE := dist/build/site/site
+EXE := /home/ubuntu/.local/bin/hask-anything-exe
 
 all:	build
 	@true
 
-${EXE}:	site.hs
-	cabal build
-	${EXE} clean
-
 build:	${EXE}
 	${EXE} build
 
-clean:
-	${EXE} clean
-
-run:	build
-	${EXE} watch
-
 # Deploy _site to Github Pages
 deploy:
-	echo ${CNAME} > _site/CNAME
-	rm -rf _site/.git
-	cd _site && git init && git add .
-	cd _site && git config user.email "nobody@circleci.com"
-	cd _site && git config user.name CircleCI
-	cd _site && git commit -m "Generated on `date`"
-	cd _site && git remote add origin ${REPO}
-	cd _site && git push -f origin master:master
+	cd app && echo ${CNAME} > _site/CNAME
+	cd app && rm -rf _site/.git
+	cd app/_site && git init && git add .
+	cd app/_site && git config user.email "nobody@circleci.com"
+	cd app/_site && git config user.name CircleCI
+	cd app/_site && git commit -m "Generated on `date`"
+	cd app/_site && git remote add origin ${REPO}
+	cd app/_site && git push -f origin master:gh-pages
