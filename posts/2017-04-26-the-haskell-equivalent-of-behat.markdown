@@ -169,4 +169,4 @@ However, it seems easier to have a 100% Haskell package first that can produce a
 
 With this proof-of-concept package, full Cucumber compliance could be attained at a later stage.
 
-So, for the non-parsing part, there are no Haskell packages available.
+As for the non-parsing part, [chuchu](http://hackage.haskell.org/package/chuchu) appears to have some of the step definition functionality available.
