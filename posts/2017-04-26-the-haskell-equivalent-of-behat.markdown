@@ -170,3 +170,18 @@ However, it seems easier to have a 100% Haskell package first that can produce a
 With this proof-of-concept package, full Cucumber compliance could be attained at a later stage.
 
 As for the non-parsing part, [chuchu](http://hackage.haskell.org/package/chuchu) appears to have some of the step definition functionality available.
+
+## Way forward
+
+Ok, so what to do? 
+
+A good first step seems to be to update [`abacate`](https://hackage.haskell.org/package/abacate). 
+A limitation compared to a Cucumber implementation is that it would only be able to parse English feature files, but it's a good start, and we could probably reuse it in the Cucumber-compliant version.
+
+Then, we need to a way to collect the different step definitions.
+The [`chuchu`](https://github.com/marcotmarcot/chuchu/tree/master/tests) library uses a `ChuChu` monad that is able to combine different steps via `(>>=)` and then just goes through the steps with `(<|>)`.
+It don't know how viable this is when collecting step definitions from different files or libraries, though.
+
+When we have an updated version `abacate` and something like `chuchu` that allows us to take feature files and interpret them, we can write a base library consisting of step defintions that interface with ` webdriver`.
+
+After that, we should put it all to the test. :)
