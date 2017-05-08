@@ -12,7 +12,7 @@ Scenario: Finding some cheese
   Then the page title should start with "cheese"
 </pre>
 
-(A bunch of scenarios are put in a `.feature`file.)
+(A bunch of scenarios are put in a `.feature` file.)
 
 While you can express tests for anything (for example, the output of a program or function), it is often used in the context of automated web application testing:
 write a test suite that goes through the flow of your web application (say, a simple webshop), and if all the tests are green, that means you're in the clear! (Or you just haven't written enough tests yet.)
@@ -21,7 +21,7 @@ Obviously, such a thing would be very nice to have for Haskell!
 
 ## Old attempts
 
-A rough battle plan was written out here (https://github.com/sol/cucumber-haskell), and some related repositories are mentioned.
+A [rough battle plan was written out here](https://github.com/sol/cucumber-haskell), and some related repositories are mentioned.
 
 Unfortunately, the majority of these packages are all very old (>3 years), and will not have been kept up to spec with the Gherkin grammar.
 
@@ -32,11 +32,11 @@ Here's how Behat does it:
 ## Behat overview
 
 * [Behat](https://github.com/Behat/Behat) does two things:
-  * It is the parser for the feature files.
-  * It is the framework for taking such a parsed feature file, and running them as steps. The steps can be defined in extensions (called "Contexts") and distributed, and you can also write your own Context.
+    * It is the parser for the feature files.
+    * It is the framework for taking such a parsed feature file, and running them as steps. The steps can be defined in extensions (called "Contexts") and distributed, and you can also write your own Context for project-specific steps.
 * The [Mink Extension](https://github.com/Behat/MinkExtension) is an integration layer Behat and Mink. 
 * [Mink](https://github.com/minkphp/Mink) is a library for communicating with an abstract browser (also called a "driver" or "web driver").
-  * There's also implementations for a few web drivers, of which the  [Selenium2 driver](https://github.com/minkphp/MinkSelenium2Driver) is the most important.
+    * There's also implementations for a few web drivers, of which the  [Selenium2 driver](https://github.com/minkphp/MinkSelenium2Driver) is the most important.
 * Now all that remains is sending the actual commands to the web driver. In the case of the Selenium2 web driver, that's a fork of [php-webdriver](https://github.com/instaclick/php-webdriver).
 
 Now let's look at each element in detail, but starting from the bottom.
@@ -63,7 +63,7 @@ Mink, by itself, does not handle the translation of Behat steps to web driver co
 The Mink extension does that.
 
 In my opinion, this abstraction layer is not required to get something Behatty running for Haskell.
-We can add it later and just have Selenium2 as the only concrete web driver.
+We can add it later and just have Selenium2 as the only concrete web driver for now.
 
 ### MinkExtension
 
@@ -88,6 +88,8 @@ public function getSession($name = null)
 ```
 
 `getMink()` fetches the web driver instance, and `getSession()` fetches the active web driver session.
+
+(And `visit()`, finally, takes a relative path and translates that into a command for the web driver.)
 
 With these kinds of building blocks, you can then write your own custom steps, which you can then refer to in your scenario.
 
@@ -182,6 +184,6 @@ Then, we need to a way to collect the different step definitions.
 The [`chuchu`](https://github.com/marcotmarcot/chuchu/tree/master/tests) library uses a `ChuChu` monad that is able to combine different steps via `(>>=)` and then just goes through the steps with `(<|>)`.
 It don't know how viable this is when collecting step definitions from different files or libraries, though.
 
-When we have an updated version `abacate` and something like `chuchu` that allows us to take feature files and interpret them, we can write a base library consisting of step defintions that interface with ` webdriver`.
+When we have an updated version `abacate` and something like `chuchu` that allows us to take feature files and interpret them, we can write a base library consisting of step defintions that interface with `webdriver`.
 
 After that, we should put it all to the test. :)
