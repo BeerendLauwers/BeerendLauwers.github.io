@@ -24,14 +24,9 @@ h1 + p {
 }
 h2 {
   font-size: 1.5em;
-  text-decoration: overline;
 }
 h3 {
   font-size: 1.2em;
-  text-decoration: overline;
-}
-h4 {
-  text-decoration: overline;
 }
 a {
   color: #1a6e8e;
