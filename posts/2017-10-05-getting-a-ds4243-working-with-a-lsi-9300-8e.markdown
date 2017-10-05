@@ -195,7 +195,7 @@ Num   Ctlr            FW Ver        NVDATA        x86-BIOS         PCI Addr
         Exiting SAS3Flash.
 ```
 
-After a reboot of Unraid, I still can't see the drives.
+After a reboot of unRAID, I still can't see the drives.
 
 Perhaps I need to configure the card or drives?
 
