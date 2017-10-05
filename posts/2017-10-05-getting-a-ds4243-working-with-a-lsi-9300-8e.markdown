@@ -27,7 +27,7 @@ I/O size (minimum/optimal): 4096 bytes / 4096 bytes
 ## Can the server see the HBA?
 
 First, I need to see if Linux could see the device.
-I SSHed to the Unraid box (just root@`IP`) and ran the following command:
+I SSHed to the unRAID box (just root@`IP`) and ran the following command:
 
 ```
 root@DS4243:/# lspci -nn | grep -i sas
