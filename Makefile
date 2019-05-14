@@ -1,7 +1,7 @@
 CNAME := beerendlauwers.be
 REPO := git@github.com:beerendlauwers/beerendlauwers.github.io.git
 
-EXE := /home/ubuntu/.local/bin/site
+EXE := /root/.local/bin/site
 
 all:	build
 	@true
