@@ -27,7 +27,6 @@ jobs:
             - /root/.cabal
             - .stack-work
       - run: make
-      - run: make deploy
       - run:
           name: Skip this job for Pull Requests
           command: '[[ -v CIRCLE_PR_NUMBER ]] && circleci step halt || true'
