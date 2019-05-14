@@ -1,0 +1,37 @@
+# This is the configuration file for circleci.com (CI which builds the site)
+version: 2
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
+
+jobs:
+  build:
+    docker:
+      - image: romanandreg/stack:latest
+
+    steps:
+      - checkout
+      - run: apt-get update && apt-get install git -y
+      - restore_cache:
+          key: build-cache-{{ checksum "stack.yaml" }}
+      - run: stack setup
+      - run: stack build --only-dependencies -j1
+      - run: stack install
+      - save_cache:
+          key: build-cache-{{ checksum "stack.yaml" }}
+          paths:
+            - /root/.stack
+            - /root/.cabal
+            - .stack-work
+      - run: make
+      - run: make deploy
+      - run:
+          name: Skip this job for Pull Requests
+          command: '[[ -v CIRCLE_PR_NUMBER ]] && circleci step halt || true'
+      - run:
+          name: Avoid hosts unknown for github
+          command: mkdir ~/.ssh/ && echo -e "Host github.com\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
+      - run: if [ $CIRCLE_BRANCH = "master" ]; then make deploy; else echo "Pull request test, skipping push."; fi
