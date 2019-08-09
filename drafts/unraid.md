@@ -142,5 +142,36 @@ These cards aren't the strongest, but they're 1-slot blower cards.
 The added benefit was that I could use the available PCIe slot for the PCIe extension cable without blocking the fan of a card, because the Sapphire GPro 8200 only has one fan at the back end of the card.
 
 I later added another card of the same type, replacing one of the STRIX cards.
+This meant that there was always at least one PCI-e slot of space available for air dumped by the open-air GPUs.
+
+### Third roadblock
+
+The VMs did not seem to come up reliably when using the HDMI dummy dongles.
+When they did come up, as soon as I started streaming the screen, be it with Teamviewer, NoMachine or Parsec, the VM froze.
+
+Booting up a VM with an actual screen connected to it did not suffer from the VM freezing when streaming the screen.
+
+Thinking I could fool the system, I booted up a VM with a real screen connected to it, then swapped it out for a HDMI dongle, but no dice: the VM just froze once more.
+This headless setup might have worked with different HDMI dongles, but I was kind of tired of working around the problem, so I went the back-up route: hooking up screens and peripherals to the VMs directly and get it to work like that.
 
 ## Unraid configuration
+
+Let's talk about the Unraid configuration.
+
+### VM storage choices
+
+I used the "Unassigned Devices" plugin that allowed me to manage drives that are outside of the Unraid array.
+
+Each drive would hold a `.vdisk` image of a single VM. 
+I went this route to make it easier to make backups of VMs and put them back in a single spot.
+
+Additionally, this would allow me to set up a single VM with the programs and games I needed, and then copy over the VM image to the other drives.
+(This did not always work out. VMs with similar or identical GPUs survived the process, but the VMs that I assigned to the Sapphire GPro 8200's did not like it one bit, crashing or refusing to boot. I'd say if you're using nearly-identical GPUs for all of your VMs, it's definitely worth a shot.)
+
+Unraid needs a single drive to be happy, and I thought I could put common shared files there.
+That's what the OCZ Saber is for.
+I'll probably replace it with a cheap 2TB SSD that I'll use to save the VM image backups on, because `rsync`ing a 250GB file over a gigabit Ethernet cable still takes quite a while.
+
+Here's the overview:
+
+![Unraid overview](/images/unraid/unraid-overview.PNG)
