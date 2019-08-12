@@ -175,3 +175,86 @@ I'll probably replace it with a cheap 2TB SSD that I'll use to save the VM image
 Here's the overview:
 
 ![Unraid overview](/images/unraid/unraid-overview.PNG)
+
+### VM configuration
+
+Each PC gets 8 CPUs, 16 gigs of RAM, a dedicated GPU and a large `vdisk.img` via VirtIO on a dedicated SSD.
+
+VMs seemed to be stable with an OVMF BIOS, so that's what I went with.
+Q35 is needed because it's a modern emulation of a chipset that properly supports PCI-E out of the box (as well as a whole other host of improvements over I440FX).
+
+As you'll be able to see in the screenshots, I played fast and loose with copying over the `vdisk.img` files to other drives, hence the weirdly nested `PC2-UD/PC1-UD/PC2-UD/PC1-UD`. 
+Never really cleaned up those paths, all that matters is that each VM gets a dedicated SSD.
+
+For the VirtIO drivers, I just used the most recent ones available, which were `virtio-win-0.1.141`.
+
+The OS for all of them is an unactivated trial version of Windows 10.
+There's an "activate your Windows 10" message at the bottom, but that's easily ignored.
+Of course, you can purchase licenses if you're going to use your VM often.
+
+Because the VMs are all on the same network, it's possible to make a local LAN server and play without internet, as well.
+(You might have to do some static IP assignment, of course.)
+
+Here are the VM configs:
+
+![Unraid PC1 Config](/images/unraid/unraid-pc1.PNG)
+
+![Unraid PC2 Config](/images/unraid/unraid-pc2.PNG)
+
+![Unraid PC3 Config](/images/unraid/unraid-pc3.PNG)
+
+![Unraid PC4 Config](/images/unraid/unraid-pc4.PNG)
+
+## Rubber hits the road
+
+### Setup
+
+I hooked up four screens and mouse/keyboard combo's to the machine.
+I had to use a USB hub for the last machine's keyboard, but that gave no issues.
+
+What I learned here is that it's important to number your PC ports with some tape or the like so you can easily replicate the setup,
+as Unraid remembers the USB devices that were assigned to a particular VM.
+
+Additionally, it's very useful to use different keyboards and mice to prevent conflicts with similar USB identifiers: two mice of the exact same make and model assigned to two different VMs will cause Unraid to complain when starting the second VM.
+
+Again, labeling the peripherals and screens helps a lot with replicating a setup.
+
+### Performance
+
+I ran a GPU stress test (Valley Benchmark) on all four VMs at 1080p to test system stability.
+With OpenHardwareMonitor, I checked the GPU temperatures, which stayed nicely below 60 degrees Celsius.
+After leaving it running for an hour or so, I felt comfortable to put it to use.
+
+### Gaming
+
+After inviting some friends for a game night, I set up the configuration again and added four headsets that were connected via the monitors.
+Luckily, no latency or crackling was experienced.
+
+Performance was admirable: we were able to play a few games at 1080p that took some slight grunt, like Alien Swarm: Reactive Drop, Warhammer End Times - Vermintide and Zombie Army Trilogy.
+(Unfortunately, Earth Defense Force 4.1 refused to run because I had apparently used a Windows 10 Pro ***N*** image, which appears to be missing a bunch of stuff EDF 4.1 depends on.)
+
+### Tragedy strikes
+
+Unbeknownst to me, all four VMs were downloading Windows 10 updates.
+Suddenly, all of them unexpectedly shut down to update at the exact same time, which was quite a sight to see.
+
+Unfortunately, boot errors showed up on all three of them, and attempting a system restore did not help.
+
+Luckily, a backup plan had been prepared where we could play 4-player couch co-op games with game controllers on another computer.
+
+## Getting Windows 10 updates to work on the VMs
+
+After searching around online, the trick turned out to be twofold:
+
+- Remove the GPU from the VM config, defaulting back to VNC Remote.
+- Set each VM to CPU core 0.
+- One by one, let the VM perform the Windows update and power it down again.
+
+One of the VMs turned out to be damaged beyond repair, so that one will be replaced with a backup (or image copy of an updated VM).
+
+## Conclusion
+
+All in all, I would call this multi-year experiment a success.
+System stability is great, game performance is admirable, and the ability to swap out and copy over VM images makes setting up new games a lot less of a hassle.
+
+If you have any questions or suggestions, feel free to open up an issue for this blog over at Github: https://github.com/beerendlauwers/beerendlauwers.github.io
