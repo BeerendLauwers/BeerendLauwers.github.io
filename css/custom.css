@@ -36,3 +36,9 @@ div.image.small .figure img {
 .figure {
     text-align: center;
 }
+
+.svg-icon {
+    display: inline;
+    width: 0.8em;
+    height: 0.8em;
+}
