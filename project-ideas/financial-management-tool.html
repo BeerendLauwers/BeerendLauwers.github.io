@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="google-site-verification" content="-BkNYpagkkm7jEqVwr37d7emdyyiNVbpGwedl92HsC0" />
+        <title>Online household financial management tool</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/custom.css" />
+        <link rel="stylesheet" type="text/css" href="../css/font-awesome.min.css">
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-64277210-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </head>
+    <body>
+        <div class="page-wrap">
+            <h1>Project: Online household financial management tool</h1>
+<p class="author">From <a href="http://beerendlauwers.be/project-ideas.html">this list</a></p>
+
+<h3>Tags</h3>
+Intermediate, Web, Parsing, Extensible
+
+<h2 id="description">Description</h2>
+<p><a href="http://www.afaspersonal.nl">AFAS Personal</a> is a simple financial management tool. Its main features include:</p>
+<ul>
+<li>The ability to export your financial data from your online banking site into the tool via a <a href="https://chrome.google.com/webstore/detail/afas-personal-bijwerk-ass/fhdjnejhhklnclpkbnfmfimijnlmghfk?hl=nl">browser extension</a></li>
+<li>Supports several banks</li>
+<li>Automatic tagging of transactions by searching for similar transactions and through (user-definable) tagging rules</li>
+<li>Ability to add one or more labels to a transaction</li>
+<li>Ability to add attachments to a transaction</li>
+<li>Splitting up a transaction into two transactions</li>
+<li>Update or remove a transaction</li>
+<li>Revert a transaction to its original, imported state</li>
+<li>Budget overview with fancy charts to indicate what goes where on an per-account basis (or for all accounts)</li>
+<li>Overview of running contracts and automatic generation of letters of request for service cancellation</li>
+<li>Pay slip management</li>
+<li>Pension calculation (NL only)</li>
+<li>Multiple-access</li>
+</ul>
+<p>The idea here is to recreate a subset of the aforementioned functionality, with the ability to extend it later on with more features. Finally, have it run on a VM / Docker instance (or just on your local machine).</p>
+<h2 id="what-you-will-learn">What you will learn</h2>
+<p>A lot, actually. This would take you through the entire cycle of thinking about program structure, development, testing / debugging and deployment.</p>
+<h3 id="things-you-will-encounter">Things you will encounter:</h3>
+<ul>
+<li>Parsing: It might be that your bank exports your data to a CSV file or a custom file format, in which case you’ll have to learn about parsing / parsing combinators.</li>
+<li>Working out program architecture: For example, think about what the type of a function that splits up a transaction could look like. Perhaps something like <code>Transaction -&gt; [Transaction]</code>? Hmm, we’ll need some more info…</li>
+<li>Passing data to the browser and the UI: Lots of opportunity here to learn about <a href="https://github.com/faylang/fay/wiki">Fay</a>, <a href="http://elm-lang.org/">Elm</a>, <a href="http://haste-lang.org/">Haste</a>, <a href="https://github.com/ghcjs/ghcjs">ghcjs</a> or <code>aeson</code> + your favourite JS templating framework.</li>
+<li>FRP: Perhaps you’d like it all to be reactive? Perhaps work it out without FRP first and then refactor it as a lesson in refactoring?</li>
+<li>Authentication and security: you’ll want to take best practices into account here.</li>
+<li>Web frameworks / libraries: Perhaps you can do some of the heavy lifting in processing transactions on a Haskell server.</li>
+<li>Databases: Perhaps you’ll have the client do everything and just use the server as a persistent store.</li>
+<li>Saving functions: But what about the tagging rules? Perhaps simply write out the function to a file and save it to the persistent store, hot-loading it later? Or perhaps a simple embedded DSL that allows people to piece together new filter functions from existing (default and custom!) ones? Crowd-sourced filter functions, anyone?</li>
+</ul>
+<p>You can always throw more stuff into the mix. Want to use <code>lens</code> in an actual project? Go for it! Want to create a simple data store that can be queried via a web API generated with <code>servant</code> and write the program logic in another language entirely? No problem.</p>
+<h2 id="rough-implementation-guide">Rough implementation guide</h2>
+<p>Because this is a very broad project, the suggested steps are <em>very</em> rough.</p>
+<ol style="list-style-type: decimal">
+<li><p>You’ll probably want to be able to get your transaction data from your bank first. This might involve a lot of hoops or the use of a browser extension to do it reliably.</p></li>
+<li><p>Then, you’ll want to be able to parse that raw data into a Haskell data structure to do stuff with it.</p></li>
+<li>From here on out, you’re on your own. Some high-level design decisions for you to contemplate:</li>
+</ol>
+<ul>
+<li>Will I have the client do most of the calculations and just treat the server as a simple data store, or will the server do more stuff? Perhaps both and cross-compile with GHCJS?</li>
+<li>Perhaps all data could be downloaded to client available for offline viewing.</li>
+<li>How will I handle the UI?</li>
+</ul>
+<h2 id="bonus-features">Bonus features</h2>
+<ul>
+<li>A transaction can only be placed in a single category. Why not more than one? A transaction could easily be a vacation expense and a dinner expense.</li>
+<li>Add an audit log that identifies the changes that were done (updating/splitting up a transaction,etc). Perhaps add the ability to roll back to a previous changeset? This opens up the fun idea of keeping your data in a git repository.</li>
+<li>Virtual accounts: based on <em>something</em> (originating account number, name, category, transaction note, etc), a transaction is placed in a virtual account.</li>
+<li><p>Perhaps something like <code>type VirtualAccount = [Source]</code>, where <code>Source</code> is a list of filters on all transactions. For example,</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">fortisFilter <span class="fu">=</span> <span class="dt">AccountFilter</span> (<span class="dt">Fortis</span> <span class="st">&quot;0012020333&quot;</span>)
+source <span class="fu">=</span> [fortisFilter]</code></pre></div></li>
+<li>Make all data queryable via a(n) (secured) API.</li>
+<li>Make all data exportable to Excel / CSV / JSON / an SQL OLAP cube.</li>
+<li><p>Make it possible to import a data dump from AFAS Personal ;)</p></li>
+</ul>
+
+        </div>
+        <div class="page-wrap" id="footer">
+            Site automatically generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

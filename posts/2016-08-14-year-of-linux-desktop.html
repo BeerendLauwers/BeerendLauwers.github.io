@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="google-site-verification" content="-BkNYpagkkm7jEqVwr37d7emdyyiNVbpGwedl92HsC0" />
+        <title>2016 - Year of the Linux desktop?</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/custom.css" />
+        <link rel="stylesheet" type="text/css" href="../css/font-awesome.min.css">
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-64277210-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </head>
+    <body>
+        <div class="page-wrap">
+            <h1>2016 - Year of the Linux desktop?</h1>
+<p class="author">By <a href="http://beerendlauwers.be/">Beerend Lauwers</a></p>
+
+<h2 id="the-prelude">The prelude</h2>
+<p>Developing for <a href="http://haskanything.com/">Hask Anything</a> on Windows has become ever more painful: dependencies on <code>unix</code>-y stuff combined with <a href="http://www.mingw.org/wiki/MSYS">MSYS</a> tended to result in weirdly broken packages and programs, often at runtime.</p>
+<p>I tended to power through these and try to resolve the problem and document it on this site, but with Hask Anything having launched, I could no longer find the time to chase these exotic issues: I had features to write, horribly overseen bugs<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> to squash!</p>
+<p>So, I got another SSD dedicated for Ubuntu 16.04 and used Rufus to get a UEFI-ready USB stick ready.</p>
+<h2 id="mo-nvidia-mo-problems">Mo’ Nvidia, Mo’ problems</h2>
+<p>Installing Linux, for most people, is <em>probably</em> relatively effortless: plug in a USB stick, select the boot option after restarting, and click through the installation wizard.</p>
+<p>I, however, had a pretty perfect storm of hardware for it to go wrong:</p>
+<ol style="list-style-type: decimal">
+<li>Windows 10 was already installed. In UEFI mode.</li>
+<li>On a Skylake chipset.</li>
+<li>With an Nvidia graphics card.</li>
+</ol>
+<p>The first two had me going on a wild goose chase when trying to solve my problems, but they probably solely originated from the fact that I had a graphics card from Nvidia.</p>
+<h2 id="boot-1">Boot #1</h2>
+<p>I plugged in the USB stick and selected it in the boot options. The Ubuntu background loaded after a few minutes, but it was empty. Well, there was a cursor, but that was it. No right-click menu, no sidebar, nothing.</p>
+<p>After some time, the following message popped up:</p>
+<blockquote>
+<p>Ubuntu 16.04 has experienced an internal error.</p>
+</blockquote>
+<p>Oh dear. Opening up the details, I deciphered that the problem lied with <code>compiz</code>, whatever that was. Some googling told me that <a href="http://askubuntu.com/questions/17381/unity-doesnt-load-no-launcher-no-dash-appears">Unity wasn’t loading</a>, and I had to do a bunch of stuff on the command line.</p>
+<p>Only problem was, I <em>didn’t have a command line</em>.</p>
+<p>So, off I went to figure out how I could get to a command line. Which led me to <a href="http://askubuntu.com/questions/162535/why-does-switching-to-the-tty-give-me-a-blank-screen">this question</a>.</p>
+<p>Small excerpt of the proposed solution:</p>
+<blockquote>
+<p>Open the terminal with Ctrl+Alt+T.</p>
+<p>Paste the below, and enter your password when asked:</p>
+<pre><code>sudo sed -i -e 's/#GRUB_TERMINAL/GRUB_TERMINAL/g' /etc/default/grub</code></pre>
+</blockquote>
+<p>I couldn’t call a terminal with that key combination, and CTRL+ALT+F1 gave me a black screen. It was clear that the Nvidia card was causing issues.</p>
+<p>So, I took it out temporarily and installed Ubuntu with my display hooked up to the motherboard’s output. Success! I could see the Ubuntu desktop.</p>
+<p>Back in went the card, and back in came the problems: only the Ubuntu background and a lone cursor. Oh, and the terminal screen was still black.</p>
+<h2 id="boot-5">Boot #5</h2>
+<p>Someone suggested an alternative: editing Grub’s boot options to include <code>nomodeset</code>.</p>
+<p>I tried to get into Ubuntu’s booting options. How to do that? <a href="http://askubuntu.com/questions/16042/how-to-get-to-the-grub-menu-at-boot-time">No one knows for certain.</a></p>
+<p>The Escape key didn’t work, and neither did Shift. Mashing space did.</p>
+<p>Then, it was just a matter or editing the configuration for one of the boot options and booting with the new config.</p>
+<h2 id="boot-9">Boot #9</h2>
+<p>The blank background was still there<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a>, but at least CTRL+ALT+F1 got me a <em>visible</em> command line. It was time to <a href="http://askubuntu.com/questions/481414/install-nvidia-driver-instead-nouveau">install the proper drivers</a>.</p>
+<p>This process involved blacklisting a bunch of drivers and then purging all the nvidia-related drivers on there, stopping the display manager (<code>lightdm</code> in my case), and installing the Nvidia drivers you downloaded earlier.</p>
+<p>Wait. <em>Crap</em>. I didn’t have a working internet connection on Ubuntu yet, I needed proprietary drivers for the Wifi dongle I was using.</p>
+<p>Ok, so <em>obviously</em>, I couldn’t continue this way. An accidental reboot later, I had lost the visible command line once more, even with <code>nomodeset</code>.</p>
+<p><em>Shit</em>.</p>
+<h2 id="boot-10">Boot #10</h2>
+<p>What options remained? Pretty much none. I scrolled through the tabs I had open:</p>
+<blockquote>
+<p>Open the terminal with Ctrl+Alt+T.</p>
+<p>Paste the below, and enter your password when asked:</p>
+<pre><code>sudo sed -i -e 's/#GRUB_TERMINAL/GRUB_TERMINAL/g' /etc/default/grub</code></pre>
+</blockquote>
+<p>Hmmm… Could I just enter this thing blindly? Doesn’t hurt to try. Blindly enter username, password, that command and password again, nothing to it. <code>reboot</code> for good measure.</p>
+<h2 id="boot-11">Boot #11</h2>
+<p>The <code>reboot</code> command worked, and I had a visible command line again. Great!</p>
+<p>I downloaded the Nvidia drivers from their website, put them on a USB stick, mounted it manually and ran the installer.</p>
+<h2 id="boot-12">Boot #12</h2>
+<p><strong>Success!</strong> The Ubuntu desktop greeted me in <em>glorious</em> 4K. I set both screens to 2K for the moment and went to bed.</p>
+<h2 id="boot-13">Boot #13</h2>
+<p>The next day, I booted it up again and the resolution had reverted to 4K again. No biggie, just set it up again. Time to install Git, Stack, Haskell and all that.</p>
+<p>Ah, no internet. Forgot. Just needed to get a driver for this dongle and install it.</p>
+<p>Unfortunately, <a href="https://ubuntuforums.org/showthread.php?t=2258715">Google says No</a>.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">sudo</span> apt-get install build-essential git
+<span class="kw">git</span> clone https://github.com/gnab/rtl8812au.git
+<span class="kw">cd</span> rtl8812au
+<span class="kw">make</span>
+<span class="kw">sudo</span> make install
+<span class="kw">sudo</span> modprobe 8812au</code></pre></div>
+<p>The git repo, okay, I can get that via USB. But the <code>build-essential</code> stuff? How do I get that? Almighty Google tells me, <a href="http://askubuntu.com/questions/146425/how-can-i-install-and-download-drivers-without-internet">like so</a>:</p>
+<blockquote>
+<p>You can manually download any ubuntu package from http://packages.ubuntu.com, copy them to the linux drive, then use dpkg to install them.</p>
+</blockquote>
+<p>Okay, great. Let’s download it and put it on the USB stick. The Ubuntu computer dimmed its screen, so let’s wake it up aaaand… the resolution has gone to something like 1024x768.</p>
+<p>No, not exactly. The resolution is 4K. <em>Again</em>. But it’s only showing a small part of the screen. The cursor still thinks we’re 4K, so I have to play “find where the cursor is clicking” for a minute or two to get to the display screen and set it to 2K again.</p>
+<p>After pressing “Apply”, the screen flickers as usual… and just displays “no input”. No. nonono. I am done. <em>Done</em>.</p>
+<h2 id="boot-14">Boot #14</h2>
+<p>I booted up <em>Windows</em>, installed Ubuntu 16.04 in a virtual machine, and called it a day. (I’m writing this post on it as we speak. Love it.)</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>Every year, more setups become supported by Linux. But every year, small things like this keep popping up and preventing people from even <em>getting to the Ubuntu installer</em>.</p>
+<p>I mean, last time I tried to install Ubuntu on a laptop, it kept segfaulting, so I <em>guess</em> this is an improvement. Still, it’s surprising how much I had to struggle with it just to get it up and running.</p>
+<p>So, to answer the question posed in the title: “Maybe next year”.</p>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p><em>Seriously</em>, how did I forget to point the web content submission interface <a href="https://github.com/beerendlauwers/HaskAnything/commit/9a6ac37683830d799dd771293609d19e6171a3e8"><em>to the real git repository?</em></a><a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p><em>Taunting me.</em><a href="#fnref2">↩</a></p></li>
+</ol>
+</div>
+
+<footer>
+  &copy; August 14, 2016 Beerend Lauwers &lt;beerendlauwers@gmail.com&gt;
+</footer>
+
+        </div>
+        <div class="page-wrap" id="footer">
+            Site automatically generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

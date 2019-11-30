@@ -1,0 +1,628 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="google-site-verification" content="-BkNYpagkkm7jEqVwr37d7emdyyiNVbpGwedl92HsC0" />
+        <title>Getting a DS4243 and LSI 9300-8e HBA working on unRAID</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/custom.css" />
+        <link rel="stylesheet" type="text/css" href="../css/font-awesome.min.css">
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-64277210-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </head>
+    <body>
+        <div class="page-wrap">
+            <h1>Getting a DS4243 and LSI 9300-8e HBA working on unRAID</h1>
+<p class="author">By <a href="http://beerendlauwers.be/">Beerend Lauwers</a></p>
+
+<p>There’s 24 drives in a DS4243 I want to expose to unRAID. But they aren’t showing up:</p>
+<pre><code>root@DS4243:/# fdisk -l
+Disk /dev/sda: 14.9 GiB, 16005464064 bytes, 31260672 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disklabel type: dos
+Disk identifier: 0x00000000
+
+Device     Boot Start      End  Sectors  Size Id Type
+/dev/sda1  *     2048 31260671 31258624 14.9G  c W95 FAT32 (LBA)
+
+
+Disk /dev/sdb: 111.8 GiB, 120034123776 bytes, 234441648 sectors
+Units: sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 4096 bytes
+I/O size (minimum/optimal): 4096 bytes / 4096 bytes</code></pre>
+<h2 id="can-the-server-see-the-hba">Can the server see the HBA?</h2>
+<p>First, I need to see if Linux could see the device. I SSHed to the unRAID box (just root@<code>IP</code>) and ran the following command:</p>
+<pre><code>root@DS4243:/# lspci -nn | grep -i sas
+01:00.0 Serial Attached SCSI controller [0107]: LSI Logic / Symbios Logic SAS3008 PCI-Express Fusion-MPT SAS-3 [1000:0097] (rev 02))</code></pre>
+<p>So Linux can see it, good. So what’s going on?</p>
+<h2 id="is-the-firmware-ok">Is the firmware OK?</h2>
+<p>Perhaps the <code>mpt3sas</code> driver is out of date?</p>
+<p>Some more googling gives this: https://forums.lime-technology.com/topic/50340-mpt3sas-support/</p>
+<blockquote>
+<p>The new Avago/LSI 93xx line of SAS cards uses mpt3sas, which doesn’t seem to be included in the current version of unRAID. I would like to see support for this added to a future version of unRAID.</p>
+</blockquote>
+<p>To which someone else replied:</p>
+<blockquote>
+<p>mpt3sas <em>is</em> included, and working for others. Not sure why it didn’t work for you. Are you running 6.2?</p>
+</blockquote>
+<p>Grepping the <code>syslog</code> for <code>mpt3sas</code> does seem to give results:</p>
+<pre><code>root@DS4243:/var# cat /var/log/syslog | grep -i mpt3sas
+Oct  5 09:48:21 DS4243 kernel: mpt3sas version 13.100.00.00 loaded
+Oct  5 09:48:21 DS4243 kernel: mpt3sas_cm0: 64 BIT PCI BUS DMA ADDRESSING SUPPORTED, total mem (32971908 kB)
+Oct  5 09:48:21 DS4243 kernel: mpt3sas_cm0: MSI-X vectors supported: 96, no of cores: 4, max_msix_vectors: -1
+Oct  5 09:48:21 DS4243 kernel: mpt3sas0-msix0: PCI-MSI-X enabled: IRQ 31
+Oct  5 09:48:21 DS4243 kernel: mpt3sas0-msix1: PCI-MSI-X enabled: IRQ 32
+Oct  5 09:48:21 DS4243 kernel: mpt3sas0-msix2: PCI-MSI-X enabled: IRQ 33
+Oct  5 09:48:21 DS4243 kernel: mpt3sas0-msix3: PCI-MSI-X enabled: IRQ 34
+Oct  5 09:48:21 DS4243 kernel: mpt3sas_cm0: iomem(0x00000000d0200000), mapped(0xffffc90003760000), size(65536)
+Oct  5 09:48:21 DS4243 kernel: mpt3sas_cm0: ioport(0x000000000000e000), size(256)
+Oct  5 09:48:21 DS4243 kernel: mpt3sas_cm0: Allocated physical memory: size(16657 kB)
+Oct  5 09:48:21 DS4243 kernel: mpt3sas_cm0: Current Controller Queue Depth(9924),Max Controller Queue Depth(10048)
+Oct  5 09:48:21 DS4243 kernel: mpt3sas_cm0: Scatter Gather Elements per IO(128)
+Oct  5 09:48:21 DS4243 kernel: mpt3sas_cm0: LSISAS3008: FWVersion(03.00.08.00), ChipRevision(0x02), BiosVersion(04.00.00.00)
+Oct  5 09:48:21 DS4243 kernel: mpt3sas_cm0: Protocol=(
+Oct  5 09:48:21 DS4243 kernel: mpt3sas_cm0: sending port enable !!
+Oct  5 09:48:21 DS4243 kernel: mpt3sas_cm0: host_add: handle(0x0001), sas_addr(0x500605b00b4e3d50), phys(8)
+Oct  5 09:48:21 DS4243 kernel: mpt3sas_cm0: expander_add: handle(0x0009), parent(0x0001), sas_addr(0x50050cc1027cd13f), phys(37)
+Oct  5 09:48:21 DS4243 kernel: mpt3sas_cm0: port enable: SUCCESS</code></pre>
+<p>The only way I’ll be able to get more information is via <code>mpt3flash</code>, which I can use to manage the HBA.</p>
+<p>On <a href="https://www.broadcom.com/products/storage/host-bus-adapters/sas-9300-8e#downloads">this download page</a>, it’s under “Firmware”, <code>Installer_P14_for_Linux</code>, which is supposed to be generic for all x64 Linux.</p>
+<p>Download it and stick it on a USB stick that goes into the server.</p>
+<p>You’ll have to manually mount it with <code>mount /dev/sdX /mnt/usb</code>. (You’ll have to <code>mkdir /mnt/usb</code> first.)</p>
+<p>From the output of <code>sas3flash</code>, it appears all my firmware is quite out of date:</p>
+<pre><code>root@DS4243:/mnt/usb/Installer_P14_for_Linux/sas3flash_linux_x64_rel# sas3flash -o -listall
+Avago Technologies SAS3 Flash Utility
+Version 15.00.00.00 (2016.11.17)
+Copyright 2008-2016 Avago Technologies. All rights reserved.
+
+        Advanced Mode Set
+
+        Adapter Selected is a Avago SAS: SAS3008(C0)
+
+Num   Ctlr            FW Ver        NVDATA        x86-BIOS         PCI Addr
+----------------------------------------------------------------------------
+
+0  SAS3008(C0)  03.00.08.00    03.05.00.06      No Image      00:01:00:00
+
+        Finished Processing Commands Successfully.
+        Exiting SAS3Flash.</code></pre>
+<p>Perhaps I should upgrade this.</p>
+<h2 id="upgrading-the-firmware">Upgrading the firmware</h2>
+<p><a href="https://amussey.github.io/2015/02/19/updating-LSI-9201-16i-firmware.html">Someone else has written a pretty good guide for this</a>.</p>
+<p>That guide says:</p>
+<blockquote>
+<p>You’ll want to grab two files from the archive: <code>Installer_PXX_for_UEFI</code>, and <code>9201_16i_package_PXX_IT_Firmware_BIOS_for_MSDOS_Windows</code>.</p>
+</blockquote>
+<p>For us, that’s the <code>9300_8e_Package_P14_IT_FW_BIOS_for_MSDOS_Windows</code> file.</p>
+<p>Ok, then we have to use <code>sas3flash</code> to list the cards:</p>
+<pre><code>root@DS4243:/mnt/usb/Installer_P14_for_Linux/sas3flash_linux_x64_rel# sas3flash -listall
+Avago Technologies SAS3 Flash Utility
+Version 15.00.00.00 (2016.11.17)
+Copyright 2008-2016 Avago Technologies. All rights reserved.
+
+        Adapter Selected is a Avago SAS: SAS3008(C0)
+
+Num   Ctlr            FW Ver        NVDATA        x86-BIOS         PCI Addr
+----------------------------------------------------------------------------
+
+0  SAS3008(C0)  03.00.08.00    03.05.00.06      No Image      00:01:00:00
+
+        Finished Processing Commands Successfully.
+        Exiting SAS3Flash.</code></pre>
+<p>Then, we need to run the update command:</p>
+<pre><code>root@DS4243:/mnt/usb/Installer_P14_for_Linux/sas3flash_linux_x64_rel# sas3flash -o -f /mnt/usb/9300_8e_Package_P14_IT_FW_BIOS_for_MSDOS_Windows/Firmware/SAS9300_8e_IT/SAS9300_8e_IT.bin
+Avago Technologies SAS3 Flash Utility
+Version 15.00.00.00 (2016.11.17)
+Copyright 2008-2016 Avago Technologies. All rights reserved.
+
+        Advanced Mode Set
+
+        Adapter Selected is a Avago SAS: SAS3008(C0)
+
+        Executing Operation: Flash Firmware Image
+
+                Firmware Image has a Valid Checksum.
+                Firmware Version 14.00.00.00
+                Firmware Image compatible with Controller.
+
+                Valid NVDATA Image found.
+                NVDATA Major Version 0e.00
+                Checking for a compatible NVData image...
+
+                NVDATA Device ID and Chip Revision match verified.
+                NVDATA SubSystem Vendor and SubSystem Device ID match verified.
+                NVDATA Versions Compatible.
+                Valid Initialization Image verified.
+                Valid BootLoader Image verified.
+
+                Beginning Firmware Download...
+                Firmware Download Successful.
+
+                Verifying Download...
+
+                Firmware Flash Successful.
+
+                Resetting Adapter...
+                Adapter Successfully Reset.
+
+                NVDATA Version 0e.00.00.08
+        Finished Processing Commands Successfully.
+        Exiting SAS3Flash.</code></pre>
+<p>Running the <code>listall</code> command again to verify:</p>
+<pre><code>root@DS4243:/mnt/usb/Installer_P14_for_Linux/sas3flash_linux_x64_rel# sas3flash -listall
+Avago Technologies SAS3 Flash Utility
+Version 15.00.00.00 (2016.11.17)
+Copyright 2008-2016 Avago Technologies. All rights reserved.
+
+        Adapter Selected is a Avago SAS: SAS3008(C0)
+
+Num   Ctlr            FW Ver        NVDATA        x86-BIOS         PCI Addr
+----------------------------------------------------------------------------
+
+0  SAS3008(C0)  14.00.00.00    0e.00.00.08      No Image      00:01:00:00
+
+        Finished Processing Commands Successfully.
+        Exiting SAS3Flash.</code></pre>
+<p>After a reboot of unRAID, I still can’t see the drives.</p>
+<p>Perhaps I need to configure the card or drives?</p>
+<h2 id="drive-configuration">Drive configuration</h2>
+<p>Googling around a little more, I find the following: https://www.reddit.com/r/homelab/comments/3qw53t/netapp_sas_shelf_with_freenas/</p>
+<blockquote>
+<p>NetApp SATA drives are usually 512 bytes, it’s the SAS and FC ones that are 520 bytes. So it should be fine.</p>
+</blockquote>
+<p>Ah, I can imagine that drives with different sectors may not be detected.</p>
+<p>Running <code>lshw -class disk</code> gives me this:</p>
+<pre><code>root@DS4243:~# lshw -class disk
+  *-disk:0
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.6.0
+       bus info: scsi@2:0.6.0
+       logical name: /dev/sdj
+       version: NA01
+       serial: JTVZKJXL
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:1
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.7.0
+       bus info: scsi@2:0.7.0
+       logical name: /dev/sdk
+       version: NA01
+       serial: JTVVW7YL
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:2
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.8.0
+       bus info: scsi@2:0.8.0
+       logical name: /dev/sdl
+       version: NA01
+       serial: JTVRT33L
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:3
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.9.0
+       bus info: scsi@2:0.9.0
+       logical name: /dev/sdm
+       version: NA01
+       serial: JTVV0N5L
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:4
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.a.0
+       bus info: scsi@2:0.10.0
+       logical name: /dev/sdn
+       version: NA01
+       serial: JTVY632L
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:5
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.b.0
+       bus info: scsi@2:0.11.0
+       logical name: /dev/sdo
+       version: NA01
+       serial: JTVYS8KL
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:6
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.c.0
+       bus info: scsi@2:0.12.0
+       logical name: /dev/sdp
+       version: NA01
+       serial: JTVUNR4L
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:7
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.d.0
+       bus info: scsi@2:0.13.0
+       logical name: /dev/sdq
+       version: NA01
+       serial: JTVV5E2L
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:8
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.e.0
+       bus info: scsi@2:0.14.0
+       logical name: /dev/sdr
+       version: NA01
+       serial: JTW0JUAL
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:9
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.f.0
+       bus info: scsi@2:0.15.0
+       logical name: /dev/sds
+       version: NA01
+       serial: JTVVXZTL
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:10
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.10.0
+       bus info: scsi@2:0.16.0
+       logical name: /dev/sdt
+       version: NA01
+       serial: JTVVY28L
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:11
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.11.0
+       bus info: scsi@2:0.17.0
+       logical name: /dev/sdu
+       version: NA01
+       serial: JTVXP44L
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:12
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.12.0
+       bus info: scsi@2:0.18.0
+       logical name: /dev/sdv
+       version: NA01
+       serial: JTVV0ETL
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:13
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.13.0
+       bus info: scsi@2:0.19.0
+       logical name: /dev/sdw
+       version: NA01
+       serial: JTVVJB1L
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:14
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.14.0
+       bus info: scsi@2:0.20.0
+       logical name: /dev/sdx
+       version: NA01
+       serial: JTVVY76L
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:15
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.15.0
+       bus info: scsi@2:0.21.0
+       logical name: /dev/sdy
+       version: NA01
+       serial: JTVYS6WL
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:16
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.16.0
+       bus info: scsi@2:0.22.0
+       logical name: /dev/sdz
+       version: NA01
+       serial: JTVY5YXL
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:17
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.17.0
+       bus info: scsi@2:0.23.0
+       logical name: /dev/sdaa
+       version: NA01
+       serial: JTVUNXTL
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:18
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.0.0
+       bus info: scsi@2:0.0.0
+       logical name: /dev/sdd
+       version: NA01
+       serial: JTVY5YBL
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:19
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.1.0
+       bus info: scsi@2:0.1.0
+       logical name: /dev/sde
+       version: NA01
+       serial: JTVVT5BL
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:20
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.2.0
+       bus info: scsi@2:0.2.0
+       logical name: /dev/sdf
+       version: NA01
+       serial: JTVV0GUL
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:21
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.3.0
+       bus info: scsi@2:0.3.0
+       logical name: /dev/sdg
+       version: NA01
+       serial: JTVWAPVL
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:22
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.4.0
+       bus info: scsi@2:0.4.0
+       logical name: /dev/sdh
+       version: NA01
+       serial: JTW0Y62L
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk:23
+       description: SCSI Disk
+       product: X410_HVIPC288A15
+       vendor: NETAPP
+       physical id: 0.5.0
+       bus info: scsi@2:0.5.0
+       logical name: /dev/sdi
+       version: NA01
+       serial: JTVY1SXL
+       capacity: 341GiB (366GB)
+       capabilities: 15000rpm
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=520
+  *-disk
+       description: SCSI Disk
+       product: Cruzer Fit
+       vendor: SanDisk
+       physical id: 0.0.0
+       bus info: scsi@0:0.0.0
+       logical name: /dev/sda
+       version: 1.00
+       serial: 4C530302010321116352
+       size: 14GiB (16GB)
+       capabilities: removable
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=512
+     *-medium
+          physical id: 0
+          logical name: /dev/sda
+          size: 14GiB (16GB)
+          capabilities: partitioned partitioned:dos
+  *-disk
+       description: SCSI Disk
+       product: Cruzer Blade
+       vendor: SanDisk
+       physical id: 0.0.0
+       bus info: scsi@1:0.0.0
+       logical name: /dev/sdb
+       version: 1.00
+       serial: 4C530203061130104413
+       size: 14GiB (15GB)
+       capabilities: removable
+       configuration: ansiversion=6 logicalsectorsize=512 sectorsize=512
+     *-medium
+          physical id: 0
+          logical name: /dev/sdb
+          size: 14GiB (15GB)
+          capabilities: partitioned partitioned:dos
+          configuration: signature=52306994
+  *-disk
+       description: ATA Disk
+       product: INTEL SSDSC2BB12
+       physical id: 0.0.0
+       bus info: scsi@5:0.0.0
+       logical name: /dev/sdc
+       version: 0370
+       serial: PHWL629401BY120LGN
+       size: 111GiB (120GB)
+       configuration: ansiversion=5 logicalsectorsize=512 sectorsize=4096
+  *-cdrom
+       description: DVD-RAM writer
+       product: CDDVDW SN-208FB
+       vendor: TSSTcorp
+       physical id: 0.0.0
+       bus info: scsi@6:0.0.0
+       logical name: /dev/cdr
+       logical name: /dev/cdr0
+       logical name: /dev/cdrom
+       logical name: /dev/cdrom0
+       logical name: /dev/cdrw
+       logical name: /dev/cdrw0
+       logical name: /dev/cdwriter
+       logical name: /dev/cdwriter0
+       logical name: /dev/dvd
+       logical name: /dev/dvd0
+       logical name: /dev/dvdr
+       logical name: /dev/dvdr0
+       logical name: /dev/dvdrw
+       logical name: /dev/dvdrw0
+       logical name: /dev/dvdwriter
+       logical name: /dev/dvdwriter0
+       logical name: /dev/sr0
+       version: AS00
+       capabilities: removable audio cd-r cd-rw dvd dvd-r dvd-ram
+       configuration: ansiversion=5 status=nodisc</code></pre>
+<p>So, the HBA is working and is able to detect the drives, but they all have 520-byte sector sizes, so they’re not detected.</p>
+<p>Let’s grep <code>dmesg</code> for confirmation of our hypothesis:</p>
+<pre><code>root@DS4243:~# dmesg | grep -i &quot;unsupported sector&quot;
+[   15.721203] sd 2:0:0:0: [sdd] Unsupported sector size 520.
+[   15.729513] sd 2:0:0:0: [sdd] Unsupported sector size 520.
+[   15.757236] sd 2:0:1:0: [sde] Unsupported sector size 520.
+[   15.765853] sd 2:0:1:0: [sde] Unsupported sector size 520.
+[   15.789162] sd 2:0:2:0: [sdf] Unsupported sector size 520.
+[   15.797647] sd 2:0:2:0: [sdf] Unsupported sector size 520.
+[   15.825228] sd 2:0:3:0: [sdg] Unsupported sector size 520.
+[   15.833847] sd 2:0:3:0: [sdg] Unsupported sector size 520.
+[   15.858220] sd 2:0:4:0: [sdh] Unsupported sector size 520.
+[   15.866541] sd 2:0:4:0: [sdh] Unsupported sector size 520.
+[   15.890157] sd 2:0:5:0: [sdi] Unsupported sector size 520.
+[   15.906094] sd 2:0:5:0: [sdi] Unsupported sector size 520.
+[   15.934235] sd 2:0:6:0: [sdj] Unsupported sector size 520.
+[   15.942792] sd 2:0:6:0: [sdj] Unsupported sector size 520.
+[   15.952122] sd 2:0:7:0: [sdk] Unsupported sector size 520.
+[   15.960467] sd 2:0:7:0: [sdk] Unsupported sector size 520.
+[   15.973089] sd 2:0:8:0: [sdl] Unsupported sector size 520.
+[   15.981449] sd 2:0:8:0: [sdl] Unsupported sector size 520.
+[   15.991077] sd 2:0:9:0: [sdm] Unsupported sector size 520.
+[   15.999195] sd 2:0:9:0: [sdm] Unsupported sector size 520.
+[   16.009092] sd 2:0:10:0: [sdn] Unsupported sector size 520.
+[   16.017180] sd 2:0:10:0: [sdn] Unsupported sector size 520.
+[   16.026064] sd 2:0:11:0: [sdo] Unsupported sector size 520.
+[   16.034201] sd 2:0:11:0: [sdo] Unsupported sector size 520.
+[   16.046126] sd 2:0:12:0: [sdp] Unsupported sector size 520.
+[   16.054252] sd 2:0:12:0: [sdp] Unsupported sector size 520.
+[   16.062085] sd 2:0:13:0: [sdq] Unsupported sector size 520.
+[   16.070200] sd 2:0:13:0: [sdq] Unsupported sector size 520.
+[   16.079048] sd 2:0:14:0: [sdr] Unsupported sector size 520.
+[   16.087258] sd 2:0:14:0: [sdr] Unsupported sector size 520.
+[   16.111200] sd 2:0:15:0: [sds] Unsupported sector size 520.
+[   16.119734] sd 2:0:15:0: [sds] Unsupported sector size 520.
+[   16.148581] sd 2:0:16:0: [sdt] Unsupported sector size 520.
+[   16.157107] sd 2:0:16:0: [sdt] Unsupported sector size 520.
+[   16.170241] sd 2:0:17:0: [sdu] Unsupported sector size 520.
+[   16.178504] sd 2:0:17:0: [sdu] Unsupported sector size 520.
+[   16.190091] sd 2:0:18:0: [sdv] Unsupported sector size 520.
+[   16.198377] sd 2:0:18:0: [sdv] Unsupported sector size 520.
+[   16.207107] sd 2:0:19:0: [sdw] Unsupported sector size 520.
+[   16.215302] sd 2:0:19:0: [sdw] Unsupported sector size 520.
+[   16.234065] sd 2:0:20:0: [sdx] Unsupported sector size 520.
+[   16.242194] sd 2:0:20:0: [sdx] Unsupported sector size 520.
+[   16.252111] sd 2:0:21:0: [sdy] Unsupported sector size 520.
+[   16.260438] sd 2:0:21:0: [sdy] Unsupported sector size 520.
+[   16.284105] sd 2:0:22:0: [sdz] Unsupported sector size 520.
+[   16.292154] sd 2:0:22:0: [sdz] Unsupported sector size 520.
+[   16.319199] sd 2:0:23:0: [sdaa] Unsupported sector size 520.
+[   16.327494] sd 2:0:23:0: [sdaa] Unsupported sector size 520.</code></pre>
+<p>Aha! I’ll replace one of the drives with a SATA drive to see what happens then.</p>
+<h2 id="a-working-drive">A working drive</h2>
+<p>I need to know what name each drive is being given, which I can look up with <code>lshw -class disk</code>.</p>
+<p>The 10TB IronWolf I added is <code>sdc</code>.</p>
+<p>Let’s grep <code>dmesg</code> again:</p>
+<pre><code>root@DS4243:~# dmesg | grep -i &quot;sdc&quot;
+[   16.276063] sd 2:0:0:0: [sdc] 19532873728 512-byte logical blocks: (10.0 TB/9.10 TiB)
+[   16.277747] sd 2:0:0:0: [sdc] 4096-byte physical blocks
+[   16.308297] sd 2:0:0:0: [sdc] Write Protect is off
+[   16.308303] sd 2:0:0:0: [sdc] Mode Sense: 9b 00 10 08
+[   16.312936] sd 2:0:0:0: [sdc] Write cache: enabled, read cache: enabled, supports DPO and FUA
+[   16.425750] sd 2:0:0:0: [sdc] Attached SCSI disk</code></pre>
+<p>Great!</p>
+<p>And yup, it’s showing up in <code>lsblk</code>:</p>
+<pre><code>root@DS4243:~# lsblk
+NAME   MAJ:MIN RM   SIZE RO TYPE MOUNTPOINT
+sdb      8:16   0 111.8G  0 disk
+sr0     11:0    1  1024M  0 rom
+sdc      8:32   0   9.1T  0 disk
+sda      8:0    1  14.9G  0 disk
+└─sda1   8:1    1  14.9G  0 part /boot</code></pre>
+
+<footer>
+  &copy; October  5, 2017 Beerend Lauwers &lt;beerendlauwers@gmail.com&gt;
+</footer>
+
+        </div>
+        <div class="page-wrap" id="footer">
+            Site automatically generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

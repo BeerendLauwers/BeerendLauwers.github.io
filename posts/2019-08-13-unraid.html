@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="google-site-verification" content="-BkNYpagkkm7jEqVwr37d7emdyyiNVbpGwedl92HsC0" />
+        <title>A "four players, 1 PC" build with Unraid</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/custom.css" />
+        <link rel="stylesheet" type="text/css" href="../css/font-awesome.min.css">
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-64277210-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </head>
+    <body>
+        <div class="page-wrap">
+            <h1>A "four players, 1 PC" build with Unraid</h1>
+<p class="author">By <a href="http://beerendlauwers.be/">Beerend Lauwers</a></p>
+
+<p>I’ve recently completed a build of a four-GPU Unraid box designed for quick, zero-setup LAN parties where each GPU was given to a Windows 10 VM along with some USB peripherals, which meant that four people could play on a single machine. Essentially, <a href="https://www.youtube.com/watch?v=LXOaCkbt4lI">Linus Tech Tips’ “7 gamers, 1 PC”</a> project reduced in cost and scope (and with increased stability). This was definitely not a quick project and I encountered many roadblocks along the way, so I’d like to document them here.</p>
+<h2 id="hardware">Hardware</h2>
+<p>At first, I wanted to have a rack-mounted solution, because in the original vision, each Windows 10 VM would have its own GPU with a single dummy HDMI dongle inserted in it. These dongle inform the GPU they’re actually a connection to a high-resolution screen and one is necessary to activate most GPUs.</p>
+<p>Gaming would be done via streaming, either via a remote desktop solution like <a href="https://ui.parsecgaming.com/">Parsec</a> (although that didn’t exist when I started the project) or Steam in-home streaming.</p>
+<p>In the worst-case scenario, I could always attach a monitor, mouse and keyboard for each VM and use it like that. (Audio is passed via the HDMI/DP cable, so headphones plugged into the monitor work fine.)</p>
+<h3 id="initial-revision">Initial revision</h3>
+<p>So, the first hardware revision was this:</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Part</th>
+<th align="left">Item</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Motherboard</td>
+<td align="left">Z10PE-D8 WS</td>
+</tr>
+<tr class="even">
+<td align="left">Case</td>
+<td align="left">Chenbro RM41300-FS81 8 Slot Gpu Version</td>
+</tr>
+<tr class="odd">
+<td align="left">PSU</td>
+<td align="left">Be Quiet Dark Rock Pro 11 (1200w)</td>
+</tr>
+<tr class="even">
+<td align="left">CPU</td>
+<td align="left">Intel Xeon E5 2683 V3 (14 core, burst 3.0GHz)</td>
+</tr>
+<tr class="odd">
+<td align="left">Cooler</td>
+<td align="left">Noctua NH-U9DX i4</td>
+</tr>
+<tr class="even">
+<td align="left">RAM</td>
+<td align="left">Kingston ValueRAM DDR4 (KVR21R15D4/32) (128GB)</td>
+</tr>
+<tr class="odd">
+<td align="left">GPU 1</td>
+<td align="left">Asus STRIX-RX480-O8G-GAMING</td>
+</tr>
+<tr class="even">
+<td align="left">GPU 2</td>
+<td align="left">Asus STRIX-RX480-O8G-GAMING</td>
+</tr>
+<tr class="odd">
+<td align="left">GPU 3</td>
+<td align="left">Sapphire Pulse Radeon RX 580 8GD5</td>
+</tr>
+<tr class="even">
+<td align="left">GPU 4</td>
+<td align="left">Sapphire Pulse Radeon RX 580 8GD5</td>
+</tr>
+<tr class="odd">
+<td align="left">Storage</td>
+<td align="left">OCZ Saber 1000 240 GB</td>
+</tr>
+<tr class="even">
+<td align="left">Storage</td>
+<td align="left">Samsung 850 EVO 250 GB x4</td>
+</tr>
+<tr class="odd">
+<td align="left">Storage</td>
+<td align="left">Sedna – Mounting Adapter for 2.5in HDD/SSD to Hard Disk Bay</td>
+</tr>
+<tr class="even">
+<td align="left">Fans</td>
+<td align="left">Scythe Slip Stream Sl Case Fan 2,000 rpm x2</td>
+</tr>
+<tr class="odd">
+<td align="left">Fans</td>
+<td align="left">Lian Li BZ-502B Front Cooling Kit</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Motherboard:</strong> Finding a good motherboard at a decent price point was hard - unless you went for the *really** expensive boards, it appeared that stability and QA issues were rampant on some of the earlier 2011-3 boards. In the end, I went for the board Linus used in his video.</p>
+<p><strong>Case:</strong> Chenbro makes good cases for a great price point. It was also one of the few cases that could handle the E-ATX format of the Z10PE-D8 WS. This particular case also has two fan slots at the top blowing directly on the GPU slots.</p>
+<p><strong>PSU:</strong> <em>Be Quiet!</em> has always been a favourite of mine for PSUs and fans. They’re high quality and not too expensive and very quiet indeed.</p>
+<p><strong>CPU:</strong> There’s no particular reason I got this CPU other than that it had sufficient cores to distribute among the VMs, and that the OEM version was cheap on eBay at the time.</p>
+<p><strong>Cooler:</strong> Noctua is also a high-quality brand that makes quiet coolers. This one could handle the high TDP of the CPU <em>and</em> fit in the case (but just barely).</p>
+<p><strong>RAM:</strong> Unraid recommends ECC because it’s the only thing preventing bit rot, as it cannot make use of <code>btrfs</code> RAID-like capabilities to correct bit rot, but only detect it when it occurs. Unfortunately, RAM was quite expensive at the time, and because I wasn’t going to actually use Unraid for its file storage, I went with this.</p>
+<p><strong>GPU 1 and 2:</strong> At the time, these were the fastest GPUs on the market for under €250 (the GPU mining wars had just begun). I purchased them via Amazon Warehouse Deals, although I did have to return two of them because they were genuinely faulty.</p>
+<p><strong>GPU 3 and 4:</strong> A few months later, I got two of these for a very fair price, so in they went. I later did return one of them after it turned out that four GPUs in this case wasn’t going to work.</p>
+<p><strong>Storage:</strong> I had one OCZ Saber SSD lying around that I used as the main parity disk and got four Samsung 850 EVOs for the VMs.</p>
+<p><strong>Fans:</strong> There was already a fan at the front of the case, but I needed very slim fans to go over the GPUs, so I got these Scythe Slip Stream S1 fans that are very slim indeed.</p>
+<p>I also had a Lian Li BZ-502B kit that takes up three 5.25&quot; slots that went in the front of the case.</p>
+<h3 id="first-roadblocks">First roadblocks</h3>
+<ul>
+<li><p>The CPU cooler I had bought barely fit in the 4U case, so I had to ditch one of the slim fans.</p></li>
+<li><p>During testing of the GPUs, I discovered that half of the PCIe slots of that motherboard aren’t even available unless you have <em>two</em> CPUs sitting in there. So, I had to buy another CPU and cooler. The CPU had to be the same, so I ended up with a ridiculous 28-core monster of a machine already.</p></li>
+<li><p>With all of the GPUs plugged in to test them and all the SSD put in the cage, there were a <em>lot</em> of cables strewn around. I was afraid of cooling issues if I was going to have four two-slot GPUs.</p></li>
+<li><p>Unraid was giving me trouble with the Windows VMs - after booting, a VM would be able to access its GPU, but only once. I did not know the source of the problem at the time, but it made starting a VM (and it working) very unreliable, even seemingly random. This was the main reason I started thinking of moving to another case that could be more easily moved about and used with directly-attached peripherals.</p></li>
+<li><p>The Chenbro case was awkward to move about and it sometimes suffered from random issues like RAM getting unseated. This may have been a one-off event, but those are the kinds of things I definitely did not want to spend time on if I took this with me to a LAN event.</p></li>
+</ul>
+<h3 id="second-hardware-revision">Second hardware revision</h3>
+<p>So, time for a new case:</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Part</th>
+<th align="left">Item</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Case</td>
+<td align="left">Corsair Carbide Series Air 540</td>
+</tr>
+</tbody>
+</table>
+<p>Unfortunately, the E-ATX motherboard I had bought didn’t actually fit inside the case. Apparently, E-ATX motherboard specs can vary wildly, and mine was one of the largest around. This meant I would have had more than a third of the board just hanging freely. If I remember correctly, I could only put one screw at the top of the board, all of them on the left side, and a few at the bottom, with none in the center or the right side.</p>
+<p>Oh well, off it went to Amazon again.</p>
+<h3 id="third-hardware-revision">Third hardware revision</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Part</th>
+<th align="left">Item</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Case</td>
+<td align="left">Cooler Master MasterCase H500P</td>
+</tr>
+<tr class="even">
+<td align="left">Fans</td>
+<td align="left">Noctua NF-A14 x6</td>
+</tr>
+<tr class="odd">
+<td align="left">GPU</td>
+<td align="left">ASUS Dual RX580 8GB</td>
+</tr>
+<tr class="even">
+<td align="left">Cables</td>
+<td align="left">Noctua NA-SEC1 Chromax</td>
+</tr>
+</tbody>
+</table>
+<p>Here, the motherboard fit after I removed one of the cable gutters. I still couldn’t populate all the screw holes, but at least I could put a few on all sides and one in the center, so I called that a success and continued onwards.</p>
+<p>This case had two 200mm RGB fans at the front and space for three 140mm fans at the top, so I replaced the 200mm fans with six Noctua NF-A14 140mm fans that can pump in a whole bunch of air.</p>
+<p>The cable gutters were also very useful to manage cables and optimize air flow.</p>
+<h3 id="second-set-of-roadblocks">Second set of roadblocks</h3>
+<ul>
+<li><p>After installing the fourth GPU, the system would no longer boot, instead displaying a “Insufficient PCI Resources Detected” message. I thought I was well and truly screwed, but apparently it’s just a <a href="https://www.supermicro.com/support/faqs/faq.cfm?faq=20284">setting in the BIOS</a> for most motherboards. Mine was called “Above 4G Decoding” as well, which I enabled.</p></li>
+<li><p>The VM issues persisted, but luckily I found the <a href="https://forum.level1techs.com/t/linux-host-windows-guest-gpu-passthrough-reinitialization-fix/121097">root cause through this post</a>: hibernation and Windows Update restarts were causing problems. So, I disabled hibernation. Windows updates are relatively rare, and I can copy over the VM images if it really takes some times for one of them. I’ll probably add the script the original poster mentioned for ease of use.</p></li>
+</ul>
+<h3 id="fourth-hardware-revision">Fourth hardware revision</h3>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Part</th>
+<th align="left">Item</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">GPU</td>
+<td align="left">Sapphire GPro 8200 x2</td>
+</tr>
+</tbody>
+</table>
+<p>The third GPU’s exhaust port at the back was blocked off, and there wasn’t a lot of space beneath it to get rid of hot air, so I got a Sapphire GPro 8200 to replace it with. These cards aren’t the strongest, but they’re 1-slot blower cards. The added benefit was that I could use the available PCIe slot for the PCIe extension cable without blocking the fan of a card, because the Sapphire GPro 8200 only has one fan at the back end of the card.</p>
+<p>I later added another card of the same type, replacing one of the STRIX cards. This meant that there was always at least one PCI-e slot of space available for air dumped by the open-air GPUs.</p>
+<h3 id="third-roadblock">Third roadblock</h3>
+<p>The VMs did not seem to come up reliably when using the HDMI dummy dongles. When they did come up, as soon as I started streaming the screen, be it with Teamviewer, NoMachine or Parsec, the VM froze.</p>
+<p>Booting up a VM with an actual screen connected to it did not suffer from the VM freezing when streaming the screen.</p>
+<p>Thinking I could fool the system, I booted up a VM with a real screen connected to it, then swapped it out for a HDMI dongle, but no dice: the VM just froze once more. This headless setup might have worked with different HDMI dongles, but I was kind of tired of working around the problem, so I went the back-up route: hooking up screens and peripherals to the VMs directly and get it to work like that.</p>
+<h2 id="unraid-configuration">Unraid configuration</h2>
+<p>Let’s talk about the Unraid configuration.</p>
+<h3 id="vm-storage-choices">VM storage choices</h3>
+<p>I used the “Unassigned Devices” plugin that allowed me to manage drives that are outside of the Unraid array.</p>
+<p>Each drive would hold a <code>.vdisk</code> image of a single VM. I went this route to make it easier to make backups of VMs and put them back in a single spot.</p>
+<p>Additionally, this would allow me to set up a single VM with the programs and games I needed, and then copy over the VM image to the other drives. (This did not always work out. VMs with similar or identical GPUs survived the process, but the VMs that I assigned to the Sapphire GPro 8200’s did not like it one bit, crashing or refusing to boot. I’d say if you’re using nearly-identical GPUs for all of your VMs, it’s definitely worth a shot.)</p>
+<p>Unraid needs a single drive to be happy, and I thought I could put common shared files there. That’s what the OCZ Saber is for. I’ll probably replace it with a cheap 2TB SSD that I’ll use to save the VM image backups on, because <code>rsync</code>ing a 250GB file over a gigabit Ethernet cable still takes quite a while.</p>
+<p>Here’s the overview:</p>
+<div class="figure">
+<img src="../images/unraid/unraid-overview.PNG" alt="Unraid overview" />
+<p class="caption">Unraid overview</p>
+</div>
+<h3 id="vm-configuration">VM configuration</h3>
+<p>Each PC gets 8 CPUs, 16 gigs of RAM, a dedicated GPU and a large <code>vdisk.img</code> via VirtIO on a dedicated SSD.</p>
+<p>VMs seemed to be stable with an OVMF BIOS, so that’s what I went with. Q35 is needed because it’s a modern emulation of a chipset that properly supports PCI-E out of the box (as well as a whole other host of improvements over I440FX).</p>
+<p>As you’ll be able to see in the screenshots, I played fast and loose with copying over the <code>vdisk.img</code> files to other drives, hence the weirdly nested <code>PC2-UD/PC1-UD/PC2-UD/PC1-UD</code>. Never really cleaned up those paths, all that matters is that each VM gets a dedicated SSD.</p>
+<p>For the VirtIO drivers, I just used the most recent ones available, which were <code>virtio-win-0.1.141</code>.</p>
+<p>The OS for all of them is an unactivated trial version of Windows 10. There’s an “activate your Windows 10” message at the bottom, but that’s easily ignored. Of course, you can purchase licenses if you’re going to use your VM often.</p>
+<p>Because the VMs are all on the same network, it’s possible to make a local LAN server and play without internet, as well. (You might have to do some static IP assignment, of course.)</p>
+<p>Here are the VM configs:</p>
+<div class="figure">
+<img src="../images/unraid/unraid-pc1.PNG" alt="Unraid PC1 Config" />
+<p class="caption">Unraid PC1 Config</p>
+</div>
+<div class="figure">
+<img src="../images/unraid/unraid-pc2.PNG" alt="Unraid PC2 Config" />
+<p class="caption">Unraid PC2 Config</p>
+</div>
+<div class="figure">
+<img src="../images/unraid/unraid-pc3.PNG" alt="Unraid PC3 Config" />
+<p class="caption">Unraid PC3 Config</p>
+</div>
+<div class="figure">
+<img src="../images/unraid/unraid-pc4.PNG" alt="Unraid PC4 Config" />
+<p class="caption">Unraid PC4 Config</p>
+</div>
+<h2 id="rubber-hits-the-road">Rubber hits the road</h2>
+<h3 id="setup">Setup</h3>
+<p>I hooked up four screens and mouse/keyboard combo’s to the machine. I had to use a USB hub for the last machine’s keyboard, but that gave no issues.</p>
+<p>What I learned here is that it’s important to number your PC ports with some tape or the like so you can easily replicate the setup, as Unraid remembers the USB devices that were assigned to a particular VM.</p>
+<p>Additionally, it’s very useful to use different keyboards and mice to prevent conflicts with similar USB identifiers: two mice of the exact same make and model assigned to two different VMs will cause Unraid to complain when starting the second VM.</p>
+<p>Again, labeling the peripherals and screens helps a lot with replicating a setup.</p>
+<h3 id="performance">Performance</h3>
+<p>I ran a GPU stress test (Valley Benchmark) on all four VMs at 1080p to test system stability. With OpenHardwareMonitor, I checked the GPU temperatures, which stayed nicely below 60 degrees Celsius. After leaving it running for an hour or so, I felt comfortable to put it to use.</p>
+<h3 id="gaming">Gaming</h3>
+<p>After inviting some friends for a game night, I set up the configuration again and added four headsets that were connected via the monitors. Luckily, no latency or crackling was experienced.</p>
+<p>Performance was admirable: we were able to play a few games at 1080p that took some slight grunt, like Alien Swarm: Reactive Drop, Warhammer End Times - Vermintide and Zombie Army Trilogy. (Unfortunately, Earth Defense Force 4.1 refused to run because I had apparently used a Windows 10 Pro <strong><em>N</em></strong> image, which appears to be missing a bunch of stuff EDF 4.1 depends on.)</p>
+<h3 id="tragedy-strikes">Tragedy strikes</h3>
+<p>Unbeknownst to me, all four VMs were downloading Windows 10 updates. Suddenly, all of them unexpectedly shut down to update at the exact same time, which was quite a sight to see.</p>
+<p>Unfortunately, boot errors showed up on all three of them, and attempting a system restore did not help.</p>
+<p>Luckily, a backup plan had been prepared where we could play 4-player couch co-op games with game controllers on another computer.</p>
+<h2 id="getting-windows-10-updates-to-work-on-the-vms">Getting Windows 10 updates to work on the VMs</h2>
+<p>After searching around online, the trick turned out to be twofold:</p>
+<ul>
+<li>Remove the GPU from the VM config, defaulting back to VNC Remote.</li>
+<li>Set each VM to CPU core 0.</li>
+<li>One by one, let the VM perform the Windows update and power it down again.</li>
+</ul>
+<p>One of the VMs turned out to be damaged beyond repair, so that one will be replaced with a backup (or image copy of an updated VM).</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>All in all, I would call this multi-year experiment a success. System stability is great, game performance is admirable, and the ability to swap out and copy over VM images makes setting up new games a lot less of a hassle.</p>
+<p>If you have any questions or suggestions, feel free to open up an issue for this blog over at Github: https://github.com/beerendlauwers/beerendlauwers.github.io</p>
+
+<footer>
+  &copy; August 13, 2019 Beerend Lauwers &lt;beerendlauwers@gmail.com&gt;
+</footer>
+
+        </div>
+        <div class="page-wrap" id="footer">
+            Site automatically generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

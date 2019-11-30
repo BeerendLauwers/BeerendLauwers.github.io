@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="google-site-verification" content="-BkNYpagkkm7jEqVwr37d7emdyyiNVbpGwedl92HsC0" />
+        <title>Hacking on Hakyll - Part 2</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/custom.css" />
+        <link rel="stylesheet" type="text/css" href="../css/font-awesome.min.css">
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-64277210-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </head>
+    <body>
+        <div class="page-wrap">
+            <h1>Hacking on Hakyll - Part 2</h1>
+<p class="author">By <a href="http://beerendlauwers.be/">Beerend Lauwers</a></p>
+
+<h2 id="motivation">Motivation</h2>
+<p>I’m working a Hakyll site that uses tags. Adding tags has been explained many times in other blogs, and that’s not what this post is about. I wanted to take the tags and another metadata element of a post, and output that in a single file all by itself.</p>
+<p>To do so, I needed to inject the data into fields, so Hakyll could use it in its templates.</p>
+<h2 id="start">Start</h2>
+<p>I first looked at how tag pages are generated:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">    <span class="co">-- As explained at http://javran.github.io/posts/2014-03-01-add-tags-to-your-hakyll-blog.html</span>
+    tags <span class="ot">&lt;-</span> buildTags <span class="st">&quot;content/*/*&quot;</span> (fromCapture <span class="st">&quot;tags/*&quot;</span>)
+
+    tagsRules tags <span class="fu">$</span> \tag pattern <span class="ot">-&gt;</span> <span class="kw">do</span>
+        <span class="kw">let</span> title <span class="fu">=</span> <span class="st">&quot;Content tagged with &quot;</span> <span class="fu">++</span> tag
+
+        route idRoute
+        compile <span class="fu">$</span> <span class="kw">do</span>
+            alltags <span class="ot">&lt;-</span> recentFirst <span class="fu">=&lt;&lt;</span> loadAll pattern
+            <span class="kw">let</span> ctx <span class="fu">=</span> constField <span class="st">&quot;title&quot;</span> title <span class="fu">&lt;&gt;</span>
+                        listField <span class="st">&quot;alltags&quot;</span> (addTags tags postCtx) (return alltags) <span class="fu">&lt;&gt;</span>
+                        defaultContext
+            makeItem <span class="st">&quot;&quot;</span>
+                <span class="fu">&gt;&gt;=</span> loadAndApplyTemplate <span class="st">&quot;templates/tags.html&quot;</span> ctx
+                <span class="fu">&gt;&gt;=</span> loadAndApplyTemplate <span class="st">&quot;templates/default.html&quot;</span> ctx
+                <span class="fu">&gt;&gt;=</span> relativizeUrls</code></pre></div>
+<p>The interesting bits here start at <code>alltags &lt;- recentFirst =&lt;&lt; loadAll pattern</code>. The tags are loaded using <code>loadAll pattern</code>, which matches Hakyll’s version of a file path. Then they’re filtered and bound to <code>alltags</code>. Then, the tags are injected into a <code>listField</code> called <code>&quot;alltags&quot;</code>, which is added to the context.</p>
+<p>In the <code>tags.html</code> template, that field is iterated over:</p>
+<pre><code>&lt;ul&gt;
+    $for(alltags)$
+        &lt;li&gt;
+            &lt;a href=&quot;$url$&quot;&gt;$title$&lt;/a&gt; - $date$
+        &lt;/li&gt;
+    $endfor$
+&lt;/ul&gt;</code></pre>
+<p>So, I have two questions:</p>
+<ol style="list-style-type: decimal">
+<li>How can I manually construct a <code>listField</code> without a file path, just from data?</li>
+<li>How can I ensure each element of the <code>listField</code> itself also has fields (like <code>$url</code> and <code>$title$</code> in the template above)?</li>
+</ol>
+<h2 id="type-safari">Type safari</h2>
+<h3 id="context-a"><code>Context a</code></h3>
+<p>The type of <code>listField</code> is: <code>listField :: String -&gt; Context a -&gt; Compiler [Item a] -&gt; Context b</code>.</p>
+<p>Ok, so I know what a <code>String</code> is, but what is a <code>Context a</code>?</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">--------------------------------------------------------------------------------</span>
+<span class="co">-- | The 'Context' monoid. Please note that the order in which you</span>
+<span class="co">-- compose the items is important. For example in</span>
+<span class="fu">--</span>
+<span class="co">-- &gt; field &quot;A&quot; f1 &lt;&gt; field &quot;A&quot; f2</span>
+<span class="fu">--</span>
+<span class="co">-- the first context will overwrite the second. This is especially</span>
+<span class="co">-- important when something is being composed with</span>
+<span class="co">-- 'metadataField' (or 'defaultContext'). If you want your context to be</span>
+<span class="co">-- overwritten by the metadata fields, compose it from the right:</span>
+<span class="fu">--</span>
+<span class="co">-- @</span>
+<span class="co">-- 'metadataField' \&lt;\&gt; field \&quot;date\&quot; fDate</span>
+<span class="co">-- @</span>
+<span class="fu">--</span>
+<span class="kw">newtype</span> <span class="dt">Context</span> a <span class="fu">=</span> <span class="dt">Context</span>
+    {<span class="ot"> unContext ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> [<span class="dt">String</span>] <span class="ot">-&gt;</span> <span class="dt">Item</span> a <span class="ot">-&gt;</span> <span class="dt">Compiler</span> <span class="dt">ContextField</span>
+    }</code></pre></div>
+<p>The example is very useful: <code>field &quot;A&quot; f1 &lt;&gt; field &quot;A&quot; f2</code>. So it’s a description of a Hakyll field, and we can chain them together with <code>&lt;&gt;</code>.</p>
+<h3 id="field"><code>field</code></h3>
+<p>Ok, what is <code>field</code>?</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">field
+<span class="ot">    ::</span> <span class="dt">String</span>                      <span class="co">-- ^ Key</span>
+    <span class="ot">-&gt;</span> (<span class="dt">Item</span> a <span class="ot">-&gt;</span> <span class="dt">Compiler</span> <span class="dt">String</span>) <span class="co">-- ^ Function that constructs a value based</span>
+                                   <span class="co">-- on the item</span>
+    <span class="ot">-&gt;</span> <span class="dt">Context</span> a
+field key value <span class="fu">=</span> field' key (fmap <span class="dt">StringField</span> <span class="fu">.</span> value)</code></pre></div>
+<p>Ok, so given a key (that we use in the template inbetween dollar signs) and a function that gives us a <code>Compiler String</code>, we can produce a field!</p>
+<h3 id="making-a-listfield">Making a <code>listField</code></h3>
+<p>So I can fill in the first two arguments of <code>listField</code> already: <code>listField :: String -&gt; Context a -&gt; Compiler [Item a] -&gt; Context b</code>.</p>
+<p>How do I get a <code>Compiler [Item a]</code>? Browsing the Hakyll documentation, I found <a href="this">http://jaspervdj.be/hakyll/reference/Hakyll-Web-Template.html</a>:</p>
+<blockquote>
+<p>Another concrete example one may consider is the following. Given the context</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">listField <span class="st">&quot;things&quot;</span> (field <span class="st">&quot;thing&quot;</span> (return <span class="fu">.</span> itemBody))
+  (sequence [makeItem <span class="st">&quot;fruits&quot;</span>, makeItem <span class="st">&quot;vegetables&quot;</span>])</code></pre></div>
+<p>and a template</p>
+<pre><code>I like
+$for(things)$
+  fresh $thing$$sep$, and 
+$endfor$</code></pre>
+<p>the resulting page would look like</p>
+<div class="sourceCode"><pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;p&gt;</span>
+I like
+ fresh fruits, and 
+ fresh vegetables
+<span class="kw">&lt;/p&gt;</span></code></pre></div>
+</blockquote>
+<p>Great, so with <code>(sequence [makeItem &quot;fruits&quot;, makeItem &quot;vegetables&quot;])</code>, we get a <code>Compiler [Item a]</code>!</p>
+<h3 id="makeitem"><code>makeItem</code></h3>
+<p>The type of <code>makeItem</code> is <code>a -&gt; Compiler (Item a)</code>, which is what we need!</p>
+<p>However, I would like to have a list of tuples, not a list of <code>String</code>s. Something like <code>[(&quot;a&quot;,[&quot;b&quot;,&quot;c&quot;]), (&quot;d&quot;,[&quot;e&quot;,&quot;f&quot;,&quot;g&quot;])]</code>.</p>
+<p>So, we would like to pass the first part of the tuple to one field, and the second part to another (list)field.</p>
+<p>But how can inspect the <code>a</code> in <code>Item a</code>?</p>
+<h3 id="itembody"><code>itemBody</code></h3>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">data</span> <span class="dt">Item</span> a <span class="fu">=</span> <span class="dt">Item</span>
+    {<span class="ot"> itemIdentifier ::</span> <span class="dt">Identifier</span>
+    ,<span class="ot"> itemBody       ::</span> a
+    } <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Typeable</span>)</code></pre></div>
+<p>Ok, so we can just apply <code>itemBody</code> to an <code>Item a</code> to get back the <code>a</code>.</p>
+<h2 id="completing-the-puzzle">Completing the puzzle</h2>
+<p>We have some data (a list of 2-tuples) and want to pass each part of the tuple to its own field. Let’s write out something like that:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">listField <span class="st">&quot;categories&quot;</span> 
+    (
+        field <span class="st">&quot;parent&quot;</span> (return <span class="fu">.</span> fst <span class="fu">.</span> itemBody) <span class="fu">&lt;&gt;</span>
+        listField <span class="st">&quot;children&quot;</span> 
+                  (field <span class="st">&quot;child&quot;</span> (return <span class="fu">.</span> itemBody)) 
+                  (sequence <span class="fu">.</span> map makeItem <span class="fu">.</span> snd <span class="fu">.</span> itemBody)
+    ) 
+    (sequence [makeItem (<span class="st">&quot;p1&quot;</span>,[<span class="st">&quot;c1&quot;</span>,<span class="st">&quot;c2&quot;</span>]), makeItem (<span class="st">&quot;p2&quot;</span>,[<span class="st">&quot;p3&quot;</span>,<span class="st">&quot;p4&quot;</span>])])</code></pre></div>
+<p>Let’s break it down:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">listField <span class="st">&quot;categories&quot;</span> (<span class="fu">...</span>) (sequence [makeItem <span class="fu">...</span>, makeItem <span class="fu">...</span>])</code></pre></div>
+<p>Here, we take our original data and put it in a list of Hakyll fields. Focusing on the <code>(...)</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">(
+    field <span class="st">&quot;parent&quot;</span> (return <span class="fu">.</span> fst <span class="fu">.</span> itemBody) <span class="fu">&lt;&gt;</span>
+    listField <span class="st">&quot;children&quot;</span> 
+              (field <span class="st">&quot;child&quot;</span> (return <span class="fu">.</span> itemBody)) 
+              (sequence <span class="fu">.</span> map makeItem <span class="fu">.</span> snd <span class="fu">.</span> itemBody)
+)</code></pre></div>
+<p>From the <code>itemBody</code> (which is a single 2-tuple from the list), we create two fields: <code>&quot;parent&quot;</code> and <code>&quot;children&quot;</code>.</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">field <span class="st">&quot;parent&quot;</span> (return <span class="fu">.</span> fst <span class="fu">.</span> itemBody)</code></pre></div>
+<p>If the tuple was <code>(&quot;p1&quot;,[&quot;c1&quot;,&quot;c2&quot;])</code>, <code>&quot;parent&quot;</code> would have <code>&quot;p1&quot;</code> as its value (= its <code>itemBody</code>).</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">listField <span class="st">&quot;children&quot;</span> 
+          (field <span class="st">&quot;child&quot;</span> (return <span class="fu">.</span> itemBody)) 
+          (sequence <span class="fu">.</span> map makeItem <span class="fu">.</span> snd <span class="fu">.</span> itemBody)</code></pre></div>
+<p>For <code>&quot;children&quot;</code>, we have to make another <code>listField</code>. We know how this is done: after an identifier, we need to give it a <code>Context a</code> and a <code>Compiler [Item a]</code>. Unfortunately, the type checker stops us:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">   <span class="kw">Couldn</span><span class="st">'t match expected type Compiler [Item String]</span>
+<span class="st">               with actual type Item (a1, [a0]) -&gt; Compiler [Item a0]</span>
+<span class="st">   In the third argument of listField, namely</span>
+<span class="st">     (sequence . map makeItem . snd . itemBody)</span>
+<span class="st">   In the second argument of (&lt;&gt;), namely</span>
+<span class="st">     listField</span>
+<span class="st">        &quot;children&quot;</span>
+<span class="st">        (field &quot;child&quot; (return . itemBody))</span>
+<span class="st">        (sequence . map makeItem . snd . itemBody)</span>
+<span class="st">   In the second argument of listField, namely</span>
+<span class="st">     (field &quot;parent&quot; (return . fst . itemBody)</span>
+<span class="st">       &lt;&gt;</span>
+<span class="st">         listField</span>
+<span class="st">           &quot;children&quot;</span>
+<span class="st">           (field &quot;child&quot; (return . itemBody))</span>
+<span class="st">           (sequence . map makeItem . snd . itemBody))</span></code></pre></div>
+<p>And, indeed, <code>listField</code> doesn’t have access to an <code>Item a</code> like <code>field</code> does:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">listField ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Context</span> a <span class="ot">-&gt;</span> <span class="dt">Compiler</span> [<span class="dt">Item</span> a] <span class="ot">-&gt;</span> <span class="dt">Context</span> b
+<span class="ot">field     ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> (<span class="dt">Item</span> a <span class="ot">-&gt;</span> <span class="dt">Compiler</span> <span class="dt">String</span>)    <span class="ot">-&gt;</span> <span class="dt">Context</span> a</code></pre></div>
+<p>Luckily, Hakyll provides us with <code>listFieldWith</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">listFieldWith
+<span class="ot">    ::</span> <span class="dt">String</span> 
+    <span class="ot">-&gt;</span> <span class="dt">Context</span> a 
+    <span class="ot">-&gt;</span> (<span class="dt">Item</span> b <span class="ot">-&gt;</span> <span class="dt">Compiler</span> [<span class="dt">Item</span> a]) 
+    <span class="ot">-&gt;</span> <span class="dt">Context</span> b</code></pre></div>
+<p>Replacing <code>listField</code> with <code>listFieldWith</code> resolves the issue, and it compiles!</p>
+<p>Let’s use this code to generate a new page:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">create [<span class="st">&quot;test.html&quot;</span>] <span class="fu">$</span> <span class="kw">do</span>
+  route idRoute
+  compile <span class="fu">$</span> <span class="kw">do</span>
+      <span class="kw">let</span> ctx <span class="fu">=</span>
+              listField <span class="st">&quot;parents&quot;</span> 
+                        (
+                         field <span class="st">&quot;parent&quot;</span> (return <span class="fu">.</span> fst <span class="fu">.</span> itemBody) <span class="fu">&lt;&gt;</span>
+                         listFieldWith <span class="st">&quot;children&quot;</span> 
+                                       (field <span class="st">&quot;child&quot;</span> (return <span class="fu">.</span> itemBody)) 
+                                       (sequence <span class="fu">.</span> map makeItem <span class="fu">.</span> snd <span class="fu">.</span> itemBody)
+                        ) 
+                        (sequence [makeItem (<span class="st">&quot;p1&quot;</span>,[<span class="st">&quot;c1&quot;</span>,<span class="st">&quot;c2&quot;</span>]), 
+                                   makeItem (<span class="st">&quot;p2&quot;</span>,[<span class="st">&quot;p3&quot;</span>,<span class="st">&quot;p4&quot;</span>])]) <span class="fu">&lt;&gt;</span>
+              defaultContext
+      makeItem <span class="st">&quot;&quot;</span>
+          <span class="fu">&gt;&gt;=</span> loadAndApplyTemplate <span class="st">&quot;templates/testing.html&quot;</span> ctx
+          <span class="fu">&gt;&gt;=</span> loadAndApplyTemplate <span class="st">&quot;templates/default.html&quot;</span> defaultContext
+          <span class="fu">&gt;&gt;=</span> relativizeUrls</code></pre></div>
+<p>Here’s <code>testing.html</code>:</p>
+<pre><code> $for(parents)$
+ $parent$: 
+   $for(children)$
+    $child$
+   $endfor$
+ $endfor$</code></pre>
+<p>And here’s the output:</p>
+<div class="sourceCode"><pre class="sourceCode html"><code class="sourceCode html"> p1: 
+   
+    c1
+   
+    c2
+   
+ 
+ p2: 
+   
+    p3
+   
+    p4</code></pre></div>
+<h2 id="conclusion">Conclusion</h2>
+<p>This one was more complex to find out, but shows quite clearly how Hakyll fields are built and composed. Now we can generate static pages from arbitrary data!</p>
+
+<footer>
+  &copy; August 17, 2015 Beerend Lauwers &lt;beerendlauwers@gmail.com&gt;
+</footer>
+
+        </div>
+        <div class="page-wrap" id="footer">
+            Site automatically generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

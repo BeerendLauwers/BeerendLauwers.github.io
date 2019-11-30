@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="google-site-verification" content="-BkNYpagkkm7jEqVwr37d7emdyyiNVbpGwedl92HsC0" />
+        <title>Hakyll: Adding a field to each item loaded by loadAll</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/custom.css" />
+        <link rel="stylesheet" type="text/css" href="../css/font-awesome.min.css">
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-64277210-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </head>
+    <body>
+        <div class="page-wrap">
+            <h1>Hakyll: Adding a field to each item loaded by loadAll</h1>
+<p class="author">By <a href="http://beerendlauwers.be/">Beerend Lauwers</a></p>
+
+<h2 id="introduction">Introduction</h2>
+<p>Let’s say we’ve loaded a bunch of posts with <code>loadAll</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">match <span class="st">&quot;index.html&quot;</span> <span class="fu">$</span> <span class="kw">do</span>
+        route idRoute
+        compile <span class="fu">$</span> <span class="kw">do</span>
+            myPosts <span class="ot">&lt;-</span> loadAll <span class="st">&quot;posts/*&quot;</span>
+            <span class="fu">...</span></code></pre></div>
+<p>We can iterate over these posts in a template file if we expose them with <code>listField</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">match <span class="st">&quot;index.html&quot;</span> <span class="fu">$</span> <span class="kw">do</span>
+        route idRoute
+        compile <span class="fu">$</span> <span class="kw">do</span>
+            myPosts <span class="ot">&lt;-</span> loadAll <span class="st">&quot;posts/*&quot;</span>
+            <span class="kw">let</span> indexContext <span class="fu">=</span>
+                   listField <span class="st">&quot;allPostsWithExtraField&quot;</span> defaultContext (return myPosts) <span class="fu">&lt;&gt;</span>
+                   defaultContext
+            <span class="fu">...</span></code></pre></div>
+<p>In a template, we can do:</p>
+<pre><code>$for(allPostsWithExtraField)$
+    The title of one of the posts: $title$
+$endfor$</code></pre>
+<p>Now, let’s say we want to have access to another field inside that loop, perhaps one that is computed from some existing metadata of the item:</p>
+<pre><code>$for(allPostsWithExtraField)$
+    The title of one of the posts: $title$
+    And here's the URL without its file extension: $url-plain$
+$endfor$</code></pre>
+<p>Obviously, we don’t want to manually introduce a metadata field for this. But how do we “add” another field?</p>
+<h2 id="jasper-to-the-rescue">Jasper to the rescue</h2>
+<p>I struggled with this, so I cheated and asked <a href="https://jaspervdj.be/">Jasper Van der Jeugt</a>, the creator of Hakyll, on the <a href="https://groups.google.com/forum/#!topic/hakyll/7Kve_5Hd65I">Hakyll Google Group</a>.</p>
+<p>Jasper provided a complete working solution:</p>
+<blockquote>
+<p>First we define a function which does what you want:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">import </span><span class="dt">System.FilePath</span> (dropExtension) 
+
+<span class="ot">urlPlainField ::</span> <span class="dt">Context</span> a 
+urlPlainField <span class="fu">=</span> field <span class="st">&quot;url-plain&quot;</span> <span class="fu">$</span> \item <span class="ot">-&gt;</span> <span class="kw">do</span> 
+mbFilePath <span class="ot">&lt;-</span> getRoute (itemIdentifier item) 
+<span class="kw">case</span> mbFilePath <span class="kw">of</span> 
+ <span class="dt">Nothing</span>       <span class="ot">-&gt;</span> return <span class="st">&quot;???&quot;</span> 
+ <span class="dt">Just</span> filePath <span class="ot">-&gt;</span> return <span class="fu">$</span> toUrl <span class="fu">$</span> dropExtension filePath </code></pre></div>
+<p>And then we add it to some <code>Context</code> that we define for the use in the list:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">postCtx ::</span> <span class="dt">Context</span> <span class="dt">String</span> 
+postCtx <span class="fu">=</span> 
+ urlPlainField <span class="ot">`mappend`</span> 
+ defaultContext </code></pre></div>
+<p>Now, the following should enable you to use the new <code>$url-plain$</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="kw">let</span> ctx <span class="fu">=</span> listField <span class="st">&quot;how-do-i-posts&quot;</span> postCtx (return howDoIPosts)</code></pre></div>
+</blockquote>
+<p>In our example, this solution looks like the following:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell">match <span class="st">&quot;index.html&quot;</span> <span class="fu">$</span> <span class="kw">do</span>
+        route idRoute
+        compile <span class="fu">$</span> <span class="kw">do</span>
+            myPosts <span class="ot">&lt;-</span> loadAll <span class="st">&quot;posts/*&quot;</span>
+            <span class="kw">let</span> postContext <span class="fu">=</span> urlPlainField <span class="fu">&lt;&gt;</span> defaultContext
+            <span class="kw">let</span> indexContext <span class="fu">=</span>
+                   listField <span class="st">&quot;allPostsWithExtraField&quot;</span> postContext (return myPosts) <span class="fu">&lt;&gt;</span>
+                   defaultContext
+            <span class="fu">...</span></code></pre></div>
+<p>So, we provided <code>listField</code> with a context that includes <code>urlPlainField</code>.</p>
+<h2 id="why-does-this-work">Why does this work?</h2>
+<p>Checking a proposed solution is always easier than finding it yourself, and I wanted to know <em>why</em> this is the solution. So, into the source code we go!</p>
+<p>In <code>Hakyll.Web.Template.Context</code>, we find:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">--------------------------------------------------------------------------------</span>
+<span class="ot">listField ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Context</span> a <span class="ot">-&gt;</span> <span class="dt">Compiler</span> [<span class="dt">Item</span> a] <span class="ot">-&gt;</span> <span class="dt">Context</span> b
+listField key c xs <span class="fu">=</span> listFieldWith key c (const xs)
+
+
+<span class="fu">--------------------------------------------------------------------------------</span>
+listFieldWith
+<span class="ot">    ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Context</span> a <span class="ot">-&gt;</span> (<span class="dt">Item</span> b <span class="ot">-&gt;</span> <span class="dt">Compiler</span> [<span class="dt">Item</span> a]) <span class="ot">-&gt;</span> <span class="dt">Context</span> b
+listFieldWith key c f <span class="fu">=</span> field' key <span class="fu">$</span> fmap (<span class="dt">ListField</span> c) <span class="fu">.</span> f</code></pre></div>
+<p>So, <code>listField</code> is a wrapper for <code>listFieldWith</code>. <code>listFieldWith</code> does the following:</p>
+<ul>
+<li>Create a field with a key (our <code>&quot;allPostsWithExtraField&quot;</code>)</li>
+<li>That field is a <code>ListField</code>, hence it being used as the constructor a bit further in the function.</li>
+<li><code>f</code> is first applied to some incoming <code>Item b</code>, and yields a <code>Compiler [Item a]</code>, which we will call <code>is</code>.</li>
+<li>Then, we <code>fmap</code> over that <code>Compiler [Item a]</code> and apply the <code>ListField</code> constructor to it. The constructor already has <code>c</code> applied to it (which is the context we passed! In our case, <code>postContext</code>).</li>
+<li>The resulting <code>ListField c is</code> value is then applied to <code>field' key</code>, producing a <code>Context</code>.</li>
+</ul>
+<p>Ok, so now the context is being carried around somewhere. But we haven’t actually <em>done</em> anything with it yet. So, we’ll need to find out where a <code>ListField</code> is pattern matched and deconstructed.</p>
+<p>That happens to be in <code>Hakyll.Web.Template</code>, in a <code>where</code> clause in the <code>applyTemplate'</code> function:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="fu">...</span>
+
+applyElem (<span class="dt">For</span> e b s) <span class="fu">=</span> applyExpr e <span class="fu">&gt;&gt;=</span> \cf <span class="ot">-&gt;</span> <span class="kw">case</span> cf <span class="kw">of</span>
+    <span class="dt">StringField</span> str  <span class="ot">-&gt;</span> fail <span class="fu">$</span>
+        <span class="st">&quot;Hakyll.Web.Template.applyTemplateWith: expected ListField but &quot;</span> <span class="fu">++</span>
+        <span class="st">&quot;got StringField for expr &quot;</span> <span class="fu">++</span> show e <span class="fu">++</span> <span class="st">&quot;, namely &quot;</span> <span class="fu">++</span> str
+    <span class="dt">ListField</span> c xs <span class="ot">-&gt;</span> <span class="kw">do</span>
+        sep <span class="ot">&lt;-</span> maybe (return <span class="st">&quot;&quot;</span>) go s
+        bs  <span class="ot">&lt;-</span> mapM (applyTemplate' b c) xs
+        return <span class="fu">$</span> intercalate sep bs
+        
+<span class="fu">...</span></code></pre></div>
+<p>We’re interested in what is going to be done with <code>c</code>, which is our context.</p>
+<p>As you can see, it’s used in a call to <code>applyTemplate'</code> that is mapped over all the items (called <code>xs</code>) inside our <code>ListField</code>.</p>
+<p>So, what happens, is:</p>
+<ul>
+<li>We load a bunch of posts with <code>myPosts &lt;- loadAll &quot;posts/*&quot;</code>, which yields us an <code>[Item a]</code>.</li>
+<li>We put them in a <code>ListField</code> with the <code>listField</code> function.</li>
+<li>We also provide a context that will be available to each <code>Item a</code>.</li>
+<li>In <code>applyElem</code>, the template <code>b</code> (which is just everything between <code>$for$</code> and <code>$endfor$</code>, the <strong>b</strong>ody), our context <code>c</code> and an <code>Item a</code>, are all passed to <code>applyTemplate'</code>.</li>
+<li>So, that means the context we passed in is now available in that template.</li>
+</ul>
+<p>And how can we then use something from the <code>Item</code> to generate some new value? Let’s take the definition of <code>urlPlainField</code> again for that:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">urlPlainField ::</span> <span class="dt">Context</span> a 
+urlPlainField <span class="fu">=</span> field <span class="st">&quot;url-plain&quot;</span> <span class="fu">$</span> \item <span class="ot">-&gt;</span> <span class="kw">do</span> 
+mbFilePath <span class="ot">&lt;-</span> getRoute (itemIdentifier item) 
+ <span class="kw">case</span> mbFilePath <span class="kw">of</span> 
+  <span class="dt">Nothing</span>       <span class="ot">-&gt;</span> return <span class="st">&quot;???&quot;</span> 
+  <span class="dt">Just</span> filePath <span class="ot">-&gt;</span> return <span class="fu">$</span> toUrl <span class="fu">$</span> dropExtension filePath</code></pre></div>
+<p>Each <code>Context</code> always gets access to the item that was passed to <code>applyTemplate'</code>. So, we can just get the <code>Identifier</code> of the item with <code>itemIdentifier</code>. And with an <code>Identifier</code>, we can access:</p>
+<ul>
+<li>Metadata with <code>getMetadata</code> .</li>
+<li>The filepath of the item (if any) with <code>toFilePath</code>.</li>
+<li>The version with <code>identifierVersion</code>.</li>
+<li>The route for the item with <code>getRoute</code>.</li>
+<li>Create a snapshot of your item with <code>saveSnapshot &lt;snapshotName&gt;</code>.</li>
+<li>Load a snapshot of your item with <code>loadSnapshot &lt;snapshotName&gt;</code>.</li>
+</ul>
+
+<footer>
+  &copy; April 29, 2016 Beerend Lauwers &lt;beerendlauwers@gmail.com&gt;
+</footer>
+
+        </div>
+        <div class="page-wrap" id="footer">
+            Site automatically generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

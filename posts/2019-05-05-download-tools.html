@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="google-site-verification" content="-BkNYpagkkm7jEqVwr37d7emdyyiNVbpGwedl92HsC0" />
+        <title>Useful tools for downloading and verifying bulk (video) datasets</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/custom.css" />
+        <link rel="stylesheet" type="text/css" href="../css/font-awesome.min.css">
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-64277210-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </head>
+    <body>
+        <div class="page-wrap">
+            <h1>Useful tools for downloading and verifying bulk (video) datasets</h1>
+<p class="author">By <a href="http://beerendlauwers.be/">Beerend Lauwers</a></p>
+
+<h2 id="downloading">Downloading</h2>
+<p>I like to archive YouTube channels and playlists I find interesting or entertaining. Usually, <a href="%5Bhttps://ytdl-org.github.io/youtube-dl/%5D(https://ytdl-org.github.io/youtube-dl/)"><code>youtube-dl</code></a> does the job admirably in downloading YouTube videos en-masse. However, there have been times where channels have been deleted, but someone else archived them and has thrown them in an open directory or on Google Drive, Mega or some other downloading service that I can’t be bothered to download one by one.</p>
+<p>This is where <a href="http://jdownloader.org/jdownloader2">JDownloader 2</a> comes in. Unfortunately, it is a GUI-centric application, but it’s great for mass downloads via these file sharing services: just copy and paste the URL of the Google Drive directory, Mega directory, or just a bunch of URLs into JDownloader’s LinkGrabber, and it’ll automatically enumerate them and check them for validity. Then, you can add them to your download queue. Unfortunately, download speed limiting during certain times of the day is not built-in, but it is available with the <a href="%5Bhttp://jdownloader.org/knowledge/wiki/addons/list/scheduler%5D(http://jdownloader.org/knowledge/wiki/addons/list/scheduler)">Scheduler</a> plugin in a roundabout way: just add a schedule rule that pauses and unpauses your download queue at certain times.</p>
+<p>For classic open directories, I still prefer <code>wget</code> if it’s small and I need it now, or the ripper script + <code>aria2</code> combo for larger open directories that I’d like to only download during certain times of the day. <a href="../posts/2018-09-01-emulating-wget-directory-structure.html">See my previous post to find out more</a>.</p>
+<p>I usually run all of these in a VM on my unRAID box that has access to a share on the drives in the DS4243, so I don’t have to move things around later.</p>
+<h2 id="verifying">Verifying</h2>
+<p>Sometimes (especially with <code>wget</code>), a download doesn’t come through correctly and the video is (partially) corrupted. I wanted some kind of tool that allowed me to verify the integrity of a video download (yes, I know hashes exist, but they are usually not provided).</p>
+<p>Looking around online, I found suggestions to use <a href="https://superuser.com/a/100290/497182">ffmpeg</a>:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">ffmpeg</span> -v error -i file.avi -f null - <span class="kw">2&gt;</span>error.log</code></pre></div>
+<p>Because this can take quite a while to run, some suggest to either only run it on the last 60 seconds of the video by adding the <code>-sseof -60</code> parameter. It also can still produce false-positives (that is, no errors are reported while they are, in fact, present).</p>
+<p>Òthers suggested using <code>mediainfo</code> to quickly read out the metadata and get the video’s duration:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">mediainfo</span> --Inform=<span class="st">&quot;Video;%Duration%&quot;</span> /Media/Movies/moviename.avi</code></pre></div>
+<p>This is a lot faster, of course, because it just tries to load the metadata and get some data from it. You’ll have to massage the output (which is in milliseconds) and do some eyeballing or filter the data in some other way.</p>
+<p>An in-the-middle approach is <a href="https://stackoverflow.com/a/49774856/4737779">using <code>ffmpeg</code> to generate thumbnails</a>:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">find</span> . -iname <span class="st">&quot;*.mp4&quot;</span> <span class="kw">|</span> <span class="kw">while</span> <span class="kw">read</span> -r <span class="ot">line</span>; <span class="kw">do</span> 
+  <span class="ot">line=</span><span class="kw">`echo</span> <span class="st">&quot;</span><span class="ot">$line</span><span class="st">&quot;</span> <span class="kw">|</span> <span class="kw">sed</span> -r <span class="st">'s/^\W+//g'</span><span class="kw">`</span>; 
+  <span class="kw">echo</span> <span class="st">'HERE IT IS ==&gt;'</span> <span class="st">&quot;</span><span class="ot">$line</span><span class="st">&quot;</span><span class="kw">;</span> 
+  <span class="kw">if</span> <span class="kw">ffmpeg</span> -i <span class="st">&quot;</span><span class="ot">$line</span><span class="st">&quot;</span> -t 2 -r 0.5 %d.jpg<span class="kw">;</span> 
+    <span class="kw">then</span> <span class="kw">echo</span> <span class="st">&quot;DONE for&quot;</span> <span class="st">&quot;</span><span class="ot">$line</span><span class="st">&quot;</span><span class="kw">;</span> 
+  <span class="kw">else</span> <span class="kw">echo</span> <span class="st">&quot;FAILED for&quot;</span> <span class="st">&quot;</span><span class="ot">$line</span><span class="st">&quot;</span> <span class="kw">&gt;&gt;</span>error.log<span class="kw">;</span> 
+  <span class="kw">fi</span>; 
+<span class="kw">done</span>;</code></pre></div>
+<h2 id="mass-unzipping-unrarring">Mass unzipping / unrarring</h2>
+<p>Sometimes, you have a bunch of zipped-up files, but want to collect their contents into a single directory. Using <code>unrar</code> (<em>not</em> <code>unrar-free</code>, which doesn’t have the recursive option), it’s pretty easy to do this by running <code>unrar x -r *.rar</code>.</p>
+<h2 id="cleaning-up-unwanted-files">Cleaning up unwanted files</h2>
+<p>Sometimes, there’s a bunch of file of a particular file type you don’t really care about strewn about in a bunch of directories. For example, the <code>aria2</code>approach I use does have the annoying side effect that an <code>.aria2</code> file is placed next to the actual file. Luckily, <code>find</code> is useful here:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">find</span> . -name <span class="st">&quot;*.aria2&quot;</span> -type f -delete</code></pre></div>
+<p>Similarly, to remove empty directories:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="kw">find</span> . -empty -type d -delete</code></pre></div>
+
+<footer>
+  &copy; May  5, 2019 Beerend Lauwers &lt;beerendlauwers@gmail.com&gt;
+</footer>
+
+        </div>
+        <div class="page-wrap" id="footer">
+            Site automatically generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

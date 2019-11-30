@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="google-site-verification" content="-BkNYpagkkm7jEqVwr37d7emdyyiNVbpGwedl92HsC0" />
+        <title>Deciding upon a hypervisor for the home lab</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/custom.css" />
+        <link rel="stylesheet" type="text/css" href="../css/font-awesome.min.css">
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-64277210-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </head>
+    <body>
+        <div class="page-wrap">
+            <h1>Deciding upon a hypervisor for the home lab</h1>
+<p class="author">By <a href="http://beerendlauwers.be/">Beerend Lauwers</a></p>
+
+<p>I have a HPE DL120 Gen9 that I wanted to use for home services: Plex, audio streaming services, JIRA, and so on.</p>
+<p>I wanted something low maintenance that I could just set up once and then leave running. I also wanted it to have Docker support to learn more about it.</p>
+<h2 id="proxmox">Proxmox</h2>
+<p>My first attempt was Proxmox, which is free and seemed to be easy to use.</p>
+<p>Unfortunately, I couldn’t get it to install properly on the DL120; the installer failed to boot under UEFI, so I switched to “Legacy Mode” (AKA BIOS) and attempted to install it again.</p>
+<p>This time, the installer showed up. After installing, however, the server was unable to boot from the partition to which Proxmox had been installed. I tried to fix the bootloader and some other stuff, but I gave up after a few days.</p>
+<h2 id="esxi">ESXI</h2>
+<p>HPE provides a customized image of the ESXI hypervisor that works out of the box. No Docker support, sure, but I could just spin up a few barebones VMs and install Docker, right?</p>
+<p>Well, not quite.</p>
+<p>ESXI 6.5 had just moved over to a web-based management UI. And it was slow as dogshit. (I only realized later there was a fat client for Windows.) The UI would time out periodically or become unresponsive.</p>
+<p>But what was worse, was that VM installations tended to lock up. When that happened, I had to delete the VM entirely, as it no longer booted into the installer.</p>
+<p>At first I thought this was just a problem in Ubuntu Server 16.04, but none of the fixes or suggestions seemed to work for me.</p>
+<p>Then I discovered I was using outdated drivers and outdated ESXI components, so after a big driver update (thank you HPE SPP all-in-one packages, although you don’t make them easy to find without a server subscription) and an update of ESXI, the UI was a lot more responsive and installs no longer locked up.</p>
+<p>Unfortunately, after rebooting the server, many of the Ubuntu VMs started to lock up while running and become unresponsive.</p>
+<p><a href="http://www.nxhut.com/2016/11/fix-slow-disk-performance-vmwahci.html">Sebastian Foss’s article</a> suggested that perhaps this performance degradation was caused by a very new AHCI driver introduced in ESXI 6.5. The solution: fall back to the old, battle-tested driver.</p>
+<p>After doing that and rebooting, ESXI became entirely unstable for me, randomly locking up.</p>
+<p>At that time, I had already spent several weeks spread over a year to get this thing off the ground. Not what I had in mind when I thought of “low maintenance”.</p>
+<h2 id="unraid">Unraid</h2>
+<p>Over time I had heard of Unraid, a paid and closed-source, user-friendly hypervisor aimed at getting up and running quickly. Originally, it was developed for non-RAID-based redundancy, but it has grown to be an excellent base for a homelab.</p>
+<p>So, I took the plunge and downloaded Unraid on a USB stick, which contains the config file that is loaded into RAM along with the rest of the hypervisor on boot. Much to my surprise, it worked on the first time!</p>
+<p>Both SSDs were detected correctly, and I could get to creating a few test VMs in only a few minutes.</p>
+<p>While Unraid does has Docker support, it needs some XML to wrap a Dockerfile with to get it to work with Unraid’s UI. So I set up a few VMs instead.</p>
+<p>I haven’t had any issues with it as of yet, and it’s quite responsive. The only gripe I have with it is that the built-in VNC solution is very slow, and finding a decent alternative for a GUI turned out to be a lot more hassle.</p>
+<p>In the end I ended up choosing NoMachine, which is the only continuation of the next generation X protocol (NX). It’s pretty performant compared to something like TigerVNC.</p>
+<p>So in my opinion, Unraid’s promise of low maintenance and ease of use has most certainly been fulfilled!</p>
+
+<footer>
+  &copy; November 14, 2017 Beerend Lauwers &lt;beerendlauwers@gmail.com&gt;
+</footer>
+
+        </div>
+        <div class="page-wrap" id="footer">
+            Site automatically generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

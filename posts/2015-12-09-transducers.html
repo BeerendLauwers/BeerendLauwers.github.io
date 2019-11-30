@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="google-site-verification" content="-BkNYpagkkm7jEqVwr37d7emdyyiNVbpGwedl92HsC0" />
+        <title>Transducers: Why and How?</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/custom.css" />
+        <link rel="stylesheet" type="text/css" href="../css/font-awesome.min.css">
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-64277210-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </head>
+    <body>
+        <div class="page-wrap">
+            <h1>Transducers: Why and How?</h1>
+<p class="author">By <a href="http://beerendlauwers.be/">Beerend Lauwers</a></p>
+
+<p>I encountered the notion of transducers about a year ago, but didn’t really look into it. Recently, I encountered it again in <a href="http://vitiy.info/Slides/MeetingCPP2015/MeetingCPP2015Complexity.pdf">a presentation about functional programming in C++</a> (slide 37).</p>
+<p><a href="http://clojure.org/transducers">The article on the Clojure website</a> didn’t really help, and a Google search for “Haskell transducers” gave me discussions such as <a href="https://www.reddit.com/r/haskell/comments/2cv6l4/clojures_transducers_are_perverse_lenses/">“Clojure’s Transducers are perverse lenses”</a> <em>(What?)</em> and <a href="http://stackoverflow.com/questions/26653829/how-is-a-transducer-different-from-a-partially-applied-function">transducers are functions a -&gt; [b] cleverly transformed with a bit of continuation passing so that the Kleisli composition operator becomes (.)</a> <strong><em>(What?!?)</em></strong>.</p>
+<p><a href="http://conscientiousprogrammer.com/blog/2014/08/07/understanding-cloure-transducers-through-types/">Franklin Chen’s blog post</a> made things a little clearer, but the <em>why</em> was still escaping me. And with <a href="http://stackoverflow.com/questions/26317325/can-someone-explain-clojure-transducers-to-me-in-simple-terms">this StackOverflow post</a>, I think I got the gist of it.</p>
+<h2 id="why">Why?</h2>
+<ul>
+<li>Transducers are useful to compose transformations together:</li>
+</ul>
+<blockquote>
+<p>Transducers are composable algorithmic transformations. <em>(<a href="http://clojure.org/transducers">Source</a>)</em></p>
+</blockquote>
+<ul>
+<li>They generalize over the input and the output containers, so a little like <code>fmap</code>:</li>
+</ul>
+<blockquote>
+<p>They are independent from the context of their input and output sources and specify only the essence of the transformation in terms of an individual element. Because transducers are decoupled from input or output sources, they can be used in many different processes - collections, streams, channels, observables, etc. <em>(<a href="http://clojure.org/transducers">Source</a>)</em></p>
+</blockquote>
+<blockquote>
+<p>Note that there is nothing that ties transducers to any concrete “collection” type. We could write instances of <code>Foldable</code> and <code>Conjable</code> for some kind of “channel” abstraction, for example, and instantaneously be able to munge data coming from it and to another. <em>(<a href="http://conscientiousprogrammer.com/blog/2014/08/07/understanding-cloure-transducers-through-types/">Source</a>)</em></p>
+</blockquote>
+<ul>
+<li>This allows for more code reuse.</li>
+</ul>
+<h2 id="how">How?</h2>
+<p>In Clojure, some functions produce a transducer based on how many arguments you provide the function.</p>
+<p>In Haskell, we have to define some functions that give us (or even: lift a function to) a <code>Transducer</code> (examples taken from <a href="http://conscientiousprogrammer.com/blog/2014/08/07/understanding-cloure-transducers-through-types/">here</a>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- Left reduce</span>
+<span class="kw">type</span> <span class="dt">Reducer</span> a r <span class="fu">=</span> r <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> r
+
+<span class="kw">type</span> <span class="dt">Transducer</span> a b <span class="fu">=</span> forall r <span class="fu">.</span> <span class="dt">Reducer</span> a r <span class="ot">-&gt;</span> <span class="dt">Reducer</span> b r
+
+<span class="co">-- Produces a Transducer that maps stuff from a to b.</span>
+<span class="co">-- mapping :: (a -&gt; b) -&gt; (r -&gt; b -&gt; r) -&gt; r -&gt; a -&gt; r</span>
+<span class="ot">mapping ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> <span class="dt">Transducer</span> b a
+mapping f xf r a <span class="fu">=</span> xf r (f a)
+
+<span class="co">-- A really simple 'reducer' to append something to a list.</span>
+<span class="co">-- conj :: [a] -&gt; a -&gt; [a]</span>
+<span class="ot">conj ::</span> <span class="dt">Reducer</span> a [a]
+conj xs x <span class="fu">=</span> xs <span class="fu">++</span> [x]
+
+<span class="co">-- Takes a transducer and a list, then applies conj to the transducer and folds the entire thing to list as the output.</span>
+<span class="co">-- xlist :: Transducer a c -&gt; [a] -&gt; [c]</span>
+<span class="ot">xlist ::</span> (([a] <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> [a]) <span class="ot">-&gt;</span> [b] <span class="ot">-&gt;</span> c <span class="ot">-&gt;</span> [b]) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [c]
+xlist xf <span class="fu">=</span> foldl (xf conj) []</code></pre></div>
+<p><code>xlist</code> is very interesting, because it’s what can be abstracted over: it is the container in which our data lives. We could have an <code>xvector</code> instead, for example.</p>
+<p>This also explains why, in the <code>Transducer</code> type, <code>r</code> is universally quantified: the transducer functions like <code>mapping</code> <em>are not allowed to know what the container is</em> for this generalization to work.</p>
+<p>This is exactly the point the Clojure documentation makes:</p>
+<blockquote>
+<p>They are independent from the context of their input and output sources and specify only the essence of the transformation in terms of an individual element.</p>
+</blockquote>
+<p>Franklin Chen’s blog post has some code that shows which typeclasses are necessary to abstract over the container type. For our purposes, we won’t do this exercise, but continue with the list representation.</p>
+<h3 id="an-example">An example</h3>
+<p>Let’s take <code>xlist ( mapping (+1) ) [1..5]</code> as an example.</p>
+<p><code>xlist</code> becomes:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- xlist xf = foldl (xf conj) []</span>
+<span class="co">-- xf = mapping (+1)</span>
+xlist <span class="fu">=</span> foldl ( (mapping (<span class="fu">+</span><span class="dv">1</span>)) conj ) [] [<span class="dv">1</span><span class="fu">..</span><span class="dv">5</span>]</code></pre></div>
+<p><code>mapping</code> then becomes:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- mapping f xf r a = xf r (f a)</span>
+<span class="co">-- f = (+1)</span>
+<span class="co">-- xf = conj</span>
+<span class="co">-- r = we don't know yet.</span>
+<span class="co">-- a = we don't know yet.</span>
+mapping <span class="fu">=</span> \r a <span class="ot">-&gt;</span> conj r ( (<span class="fu">+</span><span class="dv">1</span>) a )</code></pre></div>
+<p>Working out the iterative step of foldl:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- foldl f z (x:xs) = foldl f (f z x) xs</span>
+<span class="co">-- f = (\r a -&gt; conj r ( (+1) a ))</span>
+<span class="co">-- z = []</span>
+<span class="co">-- (x:xs) = [1..5]</span>
+
+f z x <span class="fu">=</span> ((\r a <span class="ot">-&gt;</span> conj r ( (<span class="fu">+</span><span class="dv">1</span>) a )) [] <span class="dv">1</span>) <span class="fu">=</span> conj [] ((<span class="fu">+</span><span class="dv">1</span>) <span class="dv">1</span>) <span class="fu">=</span> conj [] <span class="dv">2</span> <span class="fu">=</span> [<span class="dv">2</span>]</code></pre></div>
+<p>So this is where it happens: the <code>(+1)</code> function given to the <code>mapping</code> transducer ends up in here. The <code>foldl</code> function will collect it all into a list, giving us <code>[2,3,4,5,6]</code>.</p>
+<p>To reiterate, the generalized transducer functionality allows you to abstract over the container and just say “I want to map over it and then filter it and then use it in a formula”.</p>
+<p>That is, we can compose “recipes” out of functions that then work on every type of container for which the appropriate typeclasses are defined. Let’s see how such a recipe works behind the scenes.</p>
+<h3 id="another-example">Another example</h3>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- A filter lifted to a Transducer.</span>
+<span class="ot">filtering ::</span> (a <span class="ot">-&gt;</span> <span class="dt">Bool</span>) <span class="ot">-&gt;</span> (r <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (r <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> r)
+filtering p xf r a <span class="fu">=</span> <span class="kw">if</span> p a <span class="kw">then</span> xf r a <span class="kw">else</span> r
+
+<span class="co">-- concatMap lifted to a Transducer.</span>
+<span class="ot">flatmapping ::</span> (a <span class="ot">-&gt;</span> [b]) <span class="ot">-&gt;</span> (r <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (r <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> r)
+flatmapping f xf r a <span class="fu">=</span> foldl xf r (f a)
+
+<span class="co">-- Three composed transducers.</span>
+<span class="ot">xform ::</span> (r <span class="ot">-&gt;</span> <span class="dt">Integer</span> <span class="ot">-&gt;</span> r) <span class="ot">-&gt;</span> (r <span class="ot">-&gt;</span> <span class="dt">Integer</span> <span class="ot">-&gt;</span> r)
+xform <span class="fu">=</span> mapping (<span class="fu">+</span> <span class="dv">1</span>) <span class="fu">.</span> filtering even <span class="fu">.</span> flatmapping (\x <span class="ot">-&gt;</span> [<span class="dv">0</span> <span class="fu">..</span> x])
+
+<span class="ot">xlist ::</span> (([a] <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> [a]) <span class="ot">-&gt;</span> [b] <span class="ot">-&gt;</span> c <span class="ot">-&gt;</span> [b]) <span class="ot">-&gt;</span> [a] <span class="ot">-&gt;</span> [c]
+xlist xf <span class="fu">=</span> foldl (xf conj) []</code></pre></div>
+<p>Let’s write out <code>xlist xform [1..5]</code>.</p>
+<p>First, <code>xlist</code> :</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- xlist xf = foldl (xf conj) []</span>
+<span class="co">-- xf = mapping (+ 1) . filtering even . flatmapping (\x -&gt; [0 .. x])</span>
+xlist <span class="fu">=</span> foldl (mapping (<span class="fu">+</span> <span class="dv">1</span>) <span class="fu">.</span> filtering even <span class="fu">.</span> flatmapping (\x <span class="ot">-&gt;</span> [<span class="dv">0</span> <span class="fu">..</span> x]) conj) [] [<span class="dv">1</span><span class="fu">..</span><span class="dv">5</span>]</code></pre></div>
+<p>Then, <code>flatmapping (\x -&gt; [0 .. x]) conj</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- flatmapping f xf r a = foldl xf r (f a)</span>
+<span class="co">-- f = (\x -&gt; [0 .. x])</span>
+<span class="co">-- xf = conj</span>
+<span class="co">-- r and a = don't know yet, they'll be given to us in the foldl call.</span>
+flatMapping <span class="fu">=</span> \r a <span class="ot">-&gt;</span> foldl conj r ( (\x <span class="ot">-&gt;</span> [<span class="dv">0</span> <span class="fu">..</span> x]) a ) <span class="fu">=</span> \r a <span class="ot">-&gt;</span> foldl conj r [<span class="dv">0</span><span class="fu">..</span>a]</code></pre></div>
+<p>Then, <code>filtering even (\r a -&gt; foldl conj r [0..a])</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- filtering p xf r a = if p a then xf r a else r</span>
+<span class="co">-- p = even</span>
+<span class="co">-- xf = \r a -&gt; foldl conj r [0..a]</span>
+<span class="co">-- r and a = don't know yet, they'll be given to us in the foldl call.</span>
+filtering <span class="fu">=</span> \r a <span class="ot">-&gt;</span> <span class="kw">if</span> (even a) <span class="kw">then</span> (\r a <span class="ot">-&gt;</span> foldl conj r [<span class="dv">0</span><span class="fu">..</span>a]) r a <span class="kw">else</span> r</code></pre></div>
+<p>Then, <code>mapping (+1) (\r a -&gt; if (even a) then (\r a -&gt; foldl conj r [0..a]) r a else r)</code>:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- mapping f xf r a = xf r (f a)</span>
+<span class="co">-- f = (+1)</span>
+<span class="co">-- xf = \r a -&gt; if (even a) then (\r a -&gt; foldl conj r [0..a]) r a else r</span>
+<span class="co">-- r and a = don't know yet, they'll be given to us in the foldl call.</span>
+mapping <span class="fu">=</span> \r a <span class="ot">-&gt;</span> (\r a <span class="ot">-&gt;</span> <span class="kw">if</span> (even a) <span class="kw">then</span> (\r a <span class="ot">-&gt;</span> foldl conj r [<span class="dv">0</span><span class="fu">..</span>a]) r a <span class="kw">else</span> r) r ((<span class="fu">+</span><span class="dv">1</span>) a)</code></pre></div>
+<p>Finally, working out an iteration of the <code>foldl</code> step:</p>
+<div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="co">-- foldl f z (x:xs) = foldl f (f z x) xs</span>
+<span class="co">-- f = \r a -&gt; (\r a -&gt; if (even a) then (\r a -&gt; foldl conj r [0..a]) r a else r) r ((+1) a)</span>
+<span class="co">-- z = []</span>
+<span class="co">-- (x:xs) = [1..5]</span>
+
+f z x <span class="fu">=</span> (\r a <span class="ot">-&gt;</span> (\r a <span class="ot">-&gt;</span> <span class="kw">if</span> (even a) <span class="kw">then</span> (\r a <span class="ot">-&gt;</span> foldl conj r [<span class="dv">0</span><span class="fu">..</span>a]) r a <span class="kw">else</span> r) r ((<span class="fu">+</span><span class="dv">1</span>) a)) [] <span class="dv">1</span>
+ <span class="fu">=</span> (\r a <span class="ot">-&gt;</span> <span class="kw">if</span> (even a) <span class="kw">then</span> (\r a <span class="ot">-&gt;</span> foldl conj r [<span class="dv">0</span><span class="fu">..</span>a]) r a <span class="kw">else</span> r) [] ((<span class="fu">+</span><span class="dv">1</span>) <span class="dv">1</span>)
+ <span class="fu">=</span> <span class="kw">if</span> (even <span class="dv">2</span>) <span class="kw">then</span> (\r a <span class="ot">-&gt;</span> foldl conj r [<span class="dv">0</span><span class="fu">..</span>a]) [] <span class="dv">2</span> <span class="kw">else</span> [])
+ <span class="fu">=</span> <span class="kw">if</span> (even <span class="dv">2</span>) <span class="kw">then</span> (foldl conj [] [<span class="dv">0</span><span class="fu">..</span><span class="dv">2</span>]) <span class="kw">else</span> []
+ <span class="fu">=</span> foldl conj [] [<span class="dv">0</span><span class="fu">..</span><span class="dv">2</span>]
+ <span class="fu">=</span> [<span class="dv">0</span>,<span class="dv">1</span>,<span class="dv">2</span>]</code></pre></div>
+<p>It is now obvious that each transducer results in a left-to-right embedding: while the definition of <code>xform</code> is <code>mapping (+ 1) . filtering even . flatmapping (\x -&gt; [0 .. x])</code>, the functions are executed left-to-right:</p>
+<ul>
+<li>[1,2,3,4,5] becomes [2,3,4,5,6] <em>(<code>mapping</code> transducer)</em></li>
+<li>[2,3,4,5,6] becomes [2,4,6] <em>(<code>filtering</code> transducer)</em></li>
+<li>[2,4,6] becomes [0,1,2,0,1,2,3,4,0,1,2,3,4,5,6] <em>(<code>flatmapping</code> transducer)</em></li>
+</ul>
+<p>Hopefully this clarifies how transducers work!</p>
+
+<footer>
+  &copy; December  9, 2015 Beerend Lauwers &lt;beerendlauwers@gmail.com&gt;
+</footer>
+
+        </div>
+        <div class="page-wrap" id="footer">
+            Site automatically generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

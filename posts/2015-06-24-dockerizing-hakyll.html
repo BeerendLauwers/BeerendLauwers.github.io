@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="google-site-verification" content="-BkNYpagkkm7jEqVwr37d7emdyyiNVbpGwedl92HsC0" />
+        <title>Dockerizing Hakyll</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/custom.css" />
+        <link rel="stylesheet" type="text/css" href="../css/font-awesome.min.css">
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-64277210-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </head>
+    <body>
+        <div class="page-wrap">
+            <h1>Dockerizing Hakyll</h1>
+<p class="author">By <a href="http://beerendlauwers.be/">Beerend Lauwers</a></p>
+
+<p>It would be nice if I could have Docker container that, given a Git repository with Hakyll site code, pulled it and built it.</p>
+<p>Then, other Docker containers could start from that point and push the built site to something (local file system, another Git repo, etc).</p>
+<h2 id="the-tools">The tools</h2>
+<p>I’m using <a href="http://boot2docker.io/">boot2docker</a> version 1.6.2:</p>
+<pre><code>&gt;boot2docker version
+Boot2Docker-cli version: v1.6.2
+Git commit: cb2c3bc</code></pre>
+<h2 id="firing-up-a-container">Firing up a container</h2>
+<p>I started from the image <a href="https://registry.hub.docker.com/u/ivotron/hakyll/" class="uri">https://registry.hub.docker.com/u/ivotron/hakyll/</a> by doing:</p>
+<pre><code>docker pull ivotron/hakyll</code></pre>
+<p>Then,</p>
+<pre><code>docker run -d ivotron/hakyll git@github.com:beerendlauwers/beerendlauwers.github.io.git
+Error response from daemon: Cannot start container x: 
+[8] System error: exec: &quot;git@github.com:beerendlauwers/beerendlauwers.github.io.git&quot;: 
+stat git@github.com:beerendlauwers/beerendlauwers.github.io.git: no such file or directory</code></pre>
+<p>Ooookaaay.</p>
+<p>Let’s go inside the running process.</p>
+<pre><code>docker run -i -t -d ivotron/hakyll
+9dec513a87dc1c50482d157e0e468cbf95cbe452d8e82b1e7a872049402286b9</code></pre>
+<ul>
+<li><code>-i</code> keeps the STDIN open.</li>
+<li><code>-t</code> gives us a pseudo-TTY.</li>
+<li><code>-d</code> runs the container in the background and prints container ID.</li>
+</ul>
+<p>Now let’s login:</p>
+<pre><code>$ docker ps
+CONTAINER ID    IMAGE                  COMMAND       CREATED         STATUS        
+9dec513a87dc    ivotron/hakyll:latest  &quot;/bin/bash&quot;   26 minutes ago  Up 1 seconds</code></pre>
+<p>Now let’s attach to it:</p>
+<pre><code>docker attach 9dec
+root@9dec513a87dc:~/src#</code></pre>
+<pre><code>root@9dec513a87dc:~/src# git clone git@github.com:beerendlauwers/beerendlauwers.github.io.git clone
+(want to accept fingerprint) (YES)
+Permission denied (publickey).
+Fatal: Could not read from remote repository.</code></pre>
+<p>Fine.</p>
+<pre><code>root@9dec513a87dc:~/src# git clone https://github.com/beerendlauwers/beerendlauwers.github.io.git clone
+Cloning into 'clone'...</code></pre>
+<p>Nice.</p>
+<pre><code>root@9dec513a87dc:~/src# cd clone
+root@9dec513a87dc:~/src/clone# git checkout remotes/origin/code
+root@9dec513a87dc:~/src/clone# ghc --make -fforce-recomp site.hs
+[1 of 1] Compiling Main             ( site.hs, site.o )
+Linking site ...
+root@9dec513a87dc:~/src/clone# ./site build</code></pre>
+<h2 id="copy-over-compiled-site">Copy over compiled site</h2>
+<p>Open another (boot2docker) shell. Go to the physical machine folder you want to copy the site contents into.</p>
+<pre><code>$ docker cp 9dec513a87dc:/home/src/clone/_site .
+FATA[0000] Error response from daemon: 
+Could not find the file /home/src/clone/_site in container 9dec513a87dc.</code></pre>
+<p>Bah.</p>
+<p>Google: <a href="http://stackoverflow.com/questions/22907231/copying-files-from-host-to-docker-container" class="uri">http://stackoverflow.com/questions/22907231/copying-files-from-host-to-docker-container</a></p>
+<p>Ok.</p>
+<pre><code>$ docker run -i -t -d -v /d/Experiments/test ivotron/hakyll
+FATA[0000] Error response from daemon: 
+cannot bind mount volume: d volume paths must be absolute.</code></pre>
+<p>Google: <a href="http://superuser.com/questions/903193/mounting-a-directory-from-the-host-in-boot2docker-for-windows" class="uri">http://superuser.com/questions/903193/mounting-a-directory-from-the-host-in-boot2docker-for-windows</a></p>
+<p>Ok.</p>
+<pre><code>$ docker run -i -t -d -v $APPDATA ivotron/hakyll
+invalid value &quot;C:\\Users\\blauwers\\AppData\\Roaming&quot; for flag -v: 
+\Users\blauwers\AppData\Roaming is not an absolute path
+See 'd:\Program Files (x86)\Boot2Docker for Windows\docker.exe run --help'.</code></pre>
+<p><em>Ugh</em>.</p>
+<pre><code>$ docker run -i -t -d -v //c/Users/blauwers/AppData/Roaming ivotron/hakyll
+c64b7c2d64b0e4067c4cb47211082fd65cf505fd915fc73e2c01828fabdefba0</code></pre>
+<p>Ok, THIS works. Let’s do it with the folder I really wanted:</p>
+<pre><code>$ docker run -i -t -d -v //d/Experiments/test:/artifacts ivotron/hakyll
+94c06711f94a30bca343cc63e3bfdbbc1e54d83b86493fd78aed295fefce2c18</code></pre>
+<p>Attach to it and execute it all:</p>
+<pre><code>root@94c06711f94a:~/src# git clone https://github.com/beerendlauwers/beerendlauwers.github.io.git clone
+root@94c06711f94a:~/src# cd clone
+root@94c06711f94a:~/src/clone# git checkout remotes/origin/code
+root@94c06711f94a:~/src/clone# ghc --make -fforce-recomp site.hs
+root@94c06711f94a:~/src/clone# cd _site
+root@94c06711f94a:~/src/clone/_site# cp . /artifacts -R</code></pre>
+<p>Zilch.</p>
+<h2 id="copy-over-compiled-site-with-a-new-dockerfile">Copy over compiled site with a new <code>Dockerfile</code>:</h2>
+<p>Ok, let’s just make our own Dockerfile containing this:</p>
+<pre><code>from ivotron/hakyll
+
+copy build /root/src/
+
+workdir /root/src
+entrypoint /root/src/build</code></pre>
+<pre><code>$ docker build -t=hakylltest .
+WARN[0000] SECURITY WARNING: You are building a Docker image from Windows agains
+t a Linux Docker host. All files and directories added to build context will hav
+e '-rwxr-xr-x' permissions. It is recommended to double check and reset permissi
+ons for sensitive files and directories.
+Sending build context to Docker daemon 3.072 kB
+Sending build context to Docker daemon
+Step 0 : FROM ivotron/hakyll
+ ---&gt; ea350b6c362a
+Step 1 : COPY build /root/src/
+ ---&gt; Using cache
+ ---&gt; b990d59a8eab
+Step 2 : WORKDIR /root/src
+ ---&gt; Using cache
+ ---&gt; 9515187aa728
+Step 3 : ENTRYPOINT /root/src/build
+ ---&gt; Using cache
+ ---&gt; 1a2f38fe9045
+Successfully built 1a2f38fe9045
+
+$ docker run -it hakylltest https://github.com/beerendlauwers/beerendlauwers.github.io.git
+: No such file or directory</code></pre>
+<p>Hmm.</p>
+<p>Let’s look at the <code>build</code> file.</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="co">#! /usr/bin/env bash</span>
+
+<span class="kw">git</span> clone <span class="ot">$1</span> clone <span class="kw">||</span> <span class="kw">exit</span> 1
+<span class="kw">cd</span> clone
+<span class="kw">ghc</span> --make -fforce-recomp site.hs
+<span class="kw">./site</span> build</code></pre></div>
+<p>That seems correct. <a href="http://unix.stackexchange.com/questions/144718/sudo-unable-to-execute-script-sh-no-such-file-or-directory">Google!</a></p>
+<blockquote>
+<p><em>In my case, line ending was set wrong, to CR-LF for Windows, should be LF for Linux. Can take a while before you find that out.</em></p>
+</blockquote>
+<p>Ah, CRLF. <a href="http://sqlblog.com/blogs/jamie_thomson/archive/2012/08/07/replacing-crlf-with-lf-using-notepad.aspx">Let’s fix it in Notepad++.</a></p>
+<pre><code>$ docker build -t=hakylltest .
+blauwers@LBNL06449 /d/Experiments/test/hakyllwindows
+$ docker run -it hakylltest https://github.com/beerendlauwers/beerendlauwers.github.io.git
+fatal: repository 'clone' does not exist</code></pre>
+<p>Better. But it seems as if the repository isn’t being passed to the shell script. <a href="http://serverfault.com/questions/647779/docker-run-not-appending-arguments-to-image-entrypoint">Google!</a></p>
+<blockquote>
+<p><em>It turns out the answer is to use the array form of ENTRYPOINT (and/or CMD) in order for appending from command line to work.</em></p>
+</blockquote>
+<p>Ok, so always wrap the <code>entrypoint</code>:</p>
+<pre><code>entrypoint [&quot;/root/src/build&quot;]</code></pre>
+<pre><code>$ docker run -it hakylltest &quot;https://github.com/beerendlauwers/beerendlauwers.github.io.git&quot;
+Cloning into 'clone'...
+remote: Counting objects: 142, done.
+remote: Total 142 (delta 0), reused 0 (delta 0), pack-reused 142
+Receiving objects: 100% (142/142), 498.32 KiB | 422.00 KiB/s, done.
+Resolving deltas: 100% (50/50), done.
+Checking connectivity... done.
+
+&lt;no location info&gt;: can't find file: site.hs
+/root/src/build: line 6: ./site: No such file or directory</code></pre>
+<p>A lot better! Don’t have the correct branch, though. Let’s add a command:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="co">#! /usr/bin/env bash</span>
+
+<span class="kw">git</span> clone <span class="ot">$1</span> clone <span class="kw">||</span> <span class="kw">exit</span> 1
+<span class="kw">cd</span> clone
+<span class="kw">git</span> checkout <span class="ot">$2</span>
+<span class="kw">ghc</span> --make -fforce-recomp site.hs
+<span class="kw">./site</span> build</code></pre></div>
+<pre><code>$ docker build -t=hakylltest .
+$ docker run -it hakylltest &quot;https://github.com/beerendlauwers/beerendlauwers.g
+ithub.io.git&quot; &quot;remotes/origin/code&quot;
+Cloning into 'clone'...
+remote: Counting objects: 142, done.
+remote: Total 142 (delta 0), reused 0 (delta 0), pack-reused 142
+Receiving objects: 100% (142/142), 498.32 KiB | 396.00 KiB/s, done.
+Resolving deltas: 100% (50/50), done.
+Checking connectivity... done.
+Note: checking out 'remotes/origin/code'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by performing another checkout.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -b with the checkout command again. Example:
+
+  git checkout -b new_branch_name
+
+HEAD is now at 8d08989... Google Analytics tracking
+[1 of 1] Compiling Main             ( site.hs, site.o )
+Linking site ...
+Initialising...
+  Creating store...
+  Creating provider...
+  Running rules...
+Checking for out-of-date items
+Compiling
+  updated templates/default.html
+  updated about.rst
+  updated templates/post.html
+  updated posts/2015-06-06-getting-hakyll-running-on-windows.markdown
+  updated posts/2015-06-17-adventures-with-yesod-subsites.markdown
+  updated templates/archive.html
+  updated templates/post-list.html
+  updated archive.html
+  updated contact.markdown
+  updated css/default.css
+  updated css/font-awesome.css
+  updated css/font-awesome.css.map
+  updated css/font-awesome.min.css
+  updated fonts/FontAwesome.otf
+  updated fonts/fontawesome-webfont.eot
+  updated fonts/fontawesome-webfont.svg
+  updated fonts/fontawesome-webfont.ttf
+  updated fonts/fontawesome-webfont.woff
+  updated fonts/fontawesome-webfont.woff2
+  updated images/haskell-logo.png
+  updated index.html
+Success</code></pre>
+<p><em>Excellent.</em> Now, to do stuff with it.</p>
+<h2 id="copy-over-to-host">Copy over to host</h2>
+<p>Modify the build file as such</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash"><span class="co">#! /usr/bin/env bash</span>
+
+<span class="kw">git</span> clone <span class="ot">$1</span> clone <span class="kw">||</span> <span class="kw">exit</span> 1
+<span class="kw">cd</span> clone
+<span class="kw">git</span> checkout <span class="ot">$2</span>
+<span class="kw">ghc</span> --make -fforce-recomp site.hs
+<span class="kw">./site</span> build
+<span class="kw">echo</span> Copying to host...
+<span class="kw">cd</span> _site
+<span class="kw">cp</span> . /artifacts -R
+<span class="kw">echo</span> Copied to host.</code></pre></div>
+<p>Then run the container with a volume attached:</p>
+<div class="sourceCode"><pre class="sourceCode bash"><code class="sourceCode bash">$ <span class="kw">docker</span> run -it -v //c/Users/blauwers/AppData/Roaming/test:/artifacts hakylltest 
+ <span class="st">&quot;https://github.com/beerendlauwers/beerendlauwers.github.io.git&quot;</span> <span class="st">&quot;remotes/origin/code&quot;</span></code></pre></div>
+<p>And, like magic, the files are there!</p>
+<h2 id="conclusion">Conclusion</h2>
+<p>Docker containers are a great way to modularly build up functionality. It’s awesome that we’re able to take a basic Docker container that just builds a public repository and derive from it to build a container that does a custom deploy.</p>
+<p>Here are some <code>Dockerfiles</code> that you might find useful: <a href="https://github.com/beerendlauwers/dockerfiles">host-to-host (local build) and repo-to-host (pull repo, local build)</a>.</p>
+
+<footer>
+  &copy; June 24, 2015 Beerend Lauwers &lt;beerendlauwers@gmail.com&gt;
+</footer>
+
+        </div>
+        <div class="page-wrap" id="footer">
+            Site automatically generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>

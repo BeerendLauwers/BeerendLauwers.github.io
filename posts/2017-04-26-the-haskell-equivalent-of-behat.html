@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="google-site-verification" content="-BkNYpagkkm7jEqVwr37d7emdyyiNVbpGwedl92HsC0" />
+        <title>The Haskell equivalent of Behat</title>
+        <link rel="stylesheet" type="text/css" href="../css/default.css" />
+        <link rel="stylesheet" type="text/css" href="../css/custom.css" />
+        <link rel="stylesheet" type="text/css" href="../css/font-awesome.min.css">
+        <script>
+          (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+          (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+          })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+          ga('create', 'UA-64277210-1', 'auto');
+          ga('send', 'pageview');
+        </script>
+    </head>
+    <body>
+        <div class="page-wrap">
+            <h1>The Haskell equivalent of Behat</h1>
+<p class="author">By <a href="http://beerendlauwers.be/">Beerend Lauwers</a></p>
+
+<p><a href="http://behat.org/en/latest/">Behat</a> is a BDD framework for PHP. It uses a <a href="https://github.com/cucumber/cucumber/tree/master/gherkin">Gherkin</a>-like structure to write human-readable tests, like these:</p>
+<pre>
+Scenario: Finding some cheese
+  Given I am on the Google search page
+  When I search for "Cheese!"
+  Then the page title should start with "cheese"
+</pre>
+<p>(A bunch of scenarios are put in a <code>.feature</code> file.)</p>
+<p>While you can express tests for anything (for example, the output of a program or function), it is often used in the context of automated web application testing: write a test suite that goes through the flow of your web application (say, a simple webshop), and if all the tests are green, that means you’re in the clear! (Or you just haven’t written enough tests yet.)</p>
+<p>Obviously, such a thing would be very nice to have for Haskell!</p>
+<h2 id="old-attempts">Old attempts</h2>
+<p>A <a href="https://github.com/sol/cucumber-haskell">rough battle plan was written out here</a>, and some related repositories are mentioned.</p>
+<p>Unfortunately, the majority of these packages are all very old (&gt;3 years), and will not have been kept up to spec with the Gherkin grammar.</p>
+<p>On top of that, there are many elements that allow us to write a few tests and have them executed automatically on a (headless) browser, which the battle plan does not cover.</p>
+<p>Here’s how Behat does it:</p>
+<h2 id="behat-overview">Behat overview</h2>
+<ul>
+<li><a href="https://github.com/Behat/Behat">Behat</a> does two things:
+<ul>
+<li>It is the parser for the feature files.</li>
+<li>It is the framework for taking such a parsed feature file, and running them as steps. The steps can be defined in extensions (called “Contexts”) and distributed, and you can also write your own Context for project-specific steps.</li>
+</ul></li>
+<li>The <a href="https://github.com/Behat/MinkExtension">Mink Extension</a> is an integration layer Behat and Mink.</li>
+<li><a href="https://github.com/minkphp/Mink">Mink</a> is a library for communicating with an abstract browser (also called a “driver” or “web driver”).
+<ul>
+<li>There’s also implementations for a few web drivers, of which the <a href="https://github.com/minkphp/MinkSelenium2Driver">Selenium2 driver</a> is the most important.</li>
+</ul></li>
+<li>Now all that remains is sending the actual commands to the web driver. In the case of the Selenium2 web driver, that’s a fork of <a href="https://github.com/instaclick/php-webdriver">php-webdriver</a>.</li>
+</ul>
+<p>Now let’s look at each element in detail, but starting from the bottom.</p>
+<h3 id="php-webdriver">php-webdriver</h3>
+<p>This library establishes a connection with a Selenium2 server, opens a session, and sends commands to it. These are all just <code>curl</code> calls.</p>
+<p><strong>Do we have a Haskell equivalent?</strong> Most certainly! The <a href="https://github.com/kallisti-dev/hs-webdriver">webdriver</a> package is well-maintained, and seems to support everything.</p>
+<h3 id="mink">Mink</h3>
+<p>Mink defines a <a href="https://github.com/minkphp/Mink/blob/master/src/Driver/CoreDriver.php">base class</a> for a web driver and a bunch of utility functions, such as converters from a CSS class selector (“Click the element with CSS class <em>‘submit’</em>”), a named selector (“Click the button labeled <em>‘Start’</em>”), etc., to an XPath selector, which most web drivers understand.</p>
+<p>It also provides a few implementations of web drivers to fit into its system. Most of these implementations also expose the driver-specific capabilities or functionality.</p>
+<p><strong>Do we have a Haskell equivalent?</strong> No. Such a library would provide an interface for arbitrary web drivers. Mink, by itself, does not handle the translation of Behat steps to web driver commands. The Mink extension does that.</p>
+<p>In my opinion, this abstraction layer is not required to get something Behatty running for Haskell. We can add it later and just have Selenium2 as the only concrete web driver for now.</p>
+<h3 id="minkextension">MinkExtension</h3>
+<p>This provides a few <a href="https://github.com/Behat/MinkExtension/tree/master/src/Behat/MinkExtension/Context">Contexts</a> that allow Behat to write steps that should send commands to a web driver.</p>
+<p>For instance, the <code>RawMinkContext</code> has a function for visiting a page:</p>
+<div class="sourceCode"><pre class="sourceCode php"><code class="sourceCode php"><span class="kw">public</span> <span class="kw">function</span> visitPath<span class="ot">(</span><span class="kw">$path</span><span class="ot">,</span> <span class="kw">$sessionName</span> = <span class="kw">null</span><span class="ot">)</span>
+{
+    <span class="kw">$this</span>-&gt;getSession<span class="ot">(</span><span class="kw">$sessionName</span><span class="ot">)</span>-&gt;visit<span class="ot">(</span><span class="kw">$this</span>-&gt;locatePath<span class="ot">(</span><span class="kw">$path</span><span class="ot">));</span>
+}</code></pre></div>
+<p><code>getSession</code> being defined as:</p>
+<div class="sourceCode"><pre class="sourceCode php"><code class="sourceCode php"><span class="kw">public</span> <span class="kw">function</span> getSession<span class="ot">(</span><span class="kw">$name</span> = <span class="kw">null</span><span class="ot">)</span>
+{
+    <span class="kw">return</span> <span class="kw">$this</span>-&gt;getMink<span class="ot">()</span>-&gt;getSession<span class="ot">(</span><span class="kw">$name</span><span class="ot">);</span>
+}</code></pre></div>
+<p><code>getMink()</code> fetches the web driver instance, and <code>getSession()</code> fetches the active web driver session.</p>
+<p>(And <code>visit()</code>, finally, takes a relative path and translates that into a command for the web driver.)</p>
+<p>With these kinds of building blocks, you can then write your own custom steps, which you can then refer to in your scenario.</p>
+<p><strong>Do we have a Haskell equivalent?</strong> No. And seeing as we’ll probably skip Mink for the moment, it’s not yet required.</p>
+<h3 id="behat">Behat</h3>
+<p>Apart from parsing files and running the functions that map to each parsed step, Behat also handles configuration of the web driver (Which browser? Which version? Javascript on or not?) via the <code>behat.yml</code> file.</p>
+<p><strong>Do we have a Haskell equivalent?</strong> Kinda.</p>
+<p>For the parser part, we have the <a href="https://hackage.haskell.org/package/abacate">abacate</a> package, but it is very old, and the BNF grammar to parse the Gherkin language is probably out of date.</p>
+<h4 id="tangent-gherkin-cucumber-and-berp">Tangent: Gherkin, Cucumber, and Berp</h4>
+<p>The Gherkin language is essentially the language to write those human-readable scenarios we mentioned earlier. It’s managed by the <a href="https://cucumber.io">Cucumber</a> team, which is something like Behat.</p>
+<p>The <a href="https://github.com/cucumber/cucumber/blob/master/gherkin/gherkin.berp">Gherkin language grammar</a> itself is written in <a href="https://github.com/gasparnagy/berp">Berp</a>, which is a cross-language parser generator.</p>
+<p>Here’s how Cucumber describes its workings:</p>
+<blockquote>
+<p>Berp takes a grammar file (<code>gherkin.berp</code>) and a template file (<code>gherkin-X.razor</code>) as input and outputs a parser in language <em>X</em>:</p>
+<pre><code>╔════════════╗   ┌────────┐   ╔═══════════════╗
+║gherkin.berp║──&gt;│berp.exe│&lt;──║gherkin-X.razor║
+╚════════════╝   └────────┘   ╚═══════════════╝
+                      │
+                      V
+                 ╔════════╗
+                 ║Parser.x║
+                 ╚════════╝</code></pre>
+</blockquote>
+<p>So, essentially, you would put the Haskell code to generate a Haskell-based parser in the <code>gherkin-X.razor</code> file, and out would come <code>Parser.hs</code>. Then, <code>Parser.hs</code> would be used in the rest of the Cucumber workflow:</p>
+<blockquote>
+<p>The following diagram outlines the architecture:</p>
+<pre><code>╔════════════╗   ┌───────┐   ╔══════╗   ┌──────┐   ╔═══╗
+║Feature file║──&gt;│Scanner│──&gt;║Tokens║──&gt;│Parser│──&gt;║AST║
+╚════════════╝   └───────┘   ╚══════╝   └──────┘   ╚═══╝</code></pre>
+<p>The <em>scanner</em> reads a gherkin doc (typically read from a <code>.feature</code> file) and creates a <em>token</em> for each line. The tokens are passed to the <em>parser</em>, which outputs an <em>AST</em> (Abstract Syntax Tree).</p>
+</blockquote>
+<p>So, <code>Parser.hs</code> would have to output an AST (in JSON.).</p>
+<p>Finally, we need to “compile” the AST to a “pickle”:</p>
+<blockquote>
+<p>The AST isn’t suitable for execution by Cucumber. It needs further processing into a simpler form called Pickles.</p>
+<p>The compiler compiles the AST produced by the parser into pickles:</p>
+<pre><code>╔═══╗   ┌────────┐   ╔═══════╗
+║AST║──&gt;│Compiler│──&gt;║Pickles║
+╚═══╝   └────────┘   ╚═══════╝</code></pre>
+</blockquote>
+<p>(This also outputs JSON.)</p>
+<p>When that’s all done, you would have a Cucumber-compliant implementation.</p>
+<h4 id="end-of-tangent">End of tangent</h4>
+<p>Of course, Haskell is quite good in parsing. Generating a parser (which would have to consume a bunch of tokens) and then writing a simple compiler to simplify the AST should be quite easy.</p>
+<p>However, it seems easier to have a 100% Haskell package first that can produce an executable from a bunch of steps, which is able to:</p>
+<ul>
+<li>Read a feature file and parse it</li>
+<li>Validate the AST against the loaded steps and ensure it is executable against a web driver</li>
+<li>Execute a valid AST against a web driver</li>
+<li>Puke out the corresponding output in the console</li>
+</ul>
+<p>With this proof-of-concept package, full Cucumber compliance could be attained at a later stage.</p>
+<p>As for the non-parsing part, <a href="http://hackage.haskell.org/package/chuchu">chuchu</a> appears to have some of the step definition functionality available.</p>
+<h2 id="way-forward">Way forward</h2>
+<p>Ok, so what to do?</p>
+<p>A good first step seems to be to update <a href="https://hackage.haskell.org/package/abacate"><code>abacate</code></a>. A limitation compared to a Cucumber implementation is that it would only be able to parse English feature files, but it’s a good start, and we could probably reuse it in the Cucumber-compliant version.</p>
+<p>Then, we need to a way to collect the different step definitions. The <a href="https://github.com/marcotmarcot/chuchu/tree/master/tests"><code>chuchu</code></a> library uses a <code>ChuChu</code> monad that is able to combine different steps via <code>(&gt;&gt;=)</code> and then just goes through the steps with <code>(&lt;|&gt;)</code>. It don’t know how viable this is when collecting step definitions from different files or libraries, though.</p>
+<p>When we have an updated version <code>abacate</code> and something like <code>chuchu</code> that allows us to take feature files and interpret them, we can write a base library consisting of step defintions that interface with <code>webdriver</code>.</p>
+<p>After that, we should put it all to the test. :)</p>
+
+<footer>
+  &copy; April 26, 2017 Beerend Lauwers &lt;beerendlauwers@gmail.com&gt;
+</footer>
+
+        </div>
+        <div class="page-wrap" id="footer">
+            Site automatically generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>
