@@ -115,3 +115,13 @@ The more open levels do capture some of the magic of the original *Brainbread*,
 but the players I've encountered seemed to be mainly interested in going their own way and shooting their own zombies, 
 whereas the original *Brainbread* emphasized helping each other traverse between those small islands of safety 
 and carving a path to the objective together.
+
+## Rage
+
+*Rage* is touted online as a weird diamond in the rough - an FPS with really tight gunplay, but an quite desolate and empty open world where there wasn't really that much to do. I also played the _Mad Max_ game a little, and it reminded me heavily of that, but that world seemed a lot more alive (and bigger!) than Rage's open world. Driving around with the car was also pretty uninteresting, as was car-to-car combat. 
+
+As mentioned before, *Rage* shines in the FPS gunplay. The weapons, while somewhat generic at first, are fun to use and shoot. Of special note, however, is the special ammo for each weapon. I especially loved the shotgun's "Pop Rockets": a slug that explodes like a grenade when it hits. The tight explosion radius and slow trajectory means you have to lead your targets and ensure you get direct hits. Similarly, there's a crossbow you can put dynamite bolts in. They were great for those long-range explosive encounters. I also liked the Wingsticks, which are essentially bladed boomerangs, for close quarters combat. The only other gun I remember is the BFG, which was somewhat underwhelming.
+
+The map design reflects this dichotomy between the car-oriented open-world and the FPS levels. While some maps are just sewer crawlers and relatively bland, I still vividly remember the "Dead City" map, which honestly felt like I had been thrown right back into a _S.T.A.L.K.E.R._ or _Metro 2033_ level. It just oozed this great post-apocalyptic atmosphere, and I wouldn't have minded if a lot more of the game had taken place there.
+
+While the story is relatively bland and the ending extremely terse, I did like the various NPCs and their impeccable character design. Each important NPC was obviously lovingly crafted, animated and very well voiced. Some prime examples are Dr. Kvasir, Dan Hagar and J.K. Stiles  It's a shame I only encountered them a few times. I guess I'll have to load up _Rage 2_.
