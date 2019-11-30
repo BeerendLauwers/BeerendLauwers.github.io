@@ -11,7 +11,7 @@ Thoughts about the media ruminate in my mind for some time, and I feel more at e
 They're not groundbreaking.
 But they're mine, and I'd like to share them.
 
-## Blood, Sweat, and Pixels <img src="/images/audiobook.svg" class="svg" alt="I read this as an audiobook." />
+## Blood, Sweat, and Pixels <img src="/images/audiobook.svg" class="svg-icon" alt="I read this as an audiobook." />
 
 I've always appreciated reading about how games are made. 
 I made some forays into it personally with doing programming for *Empires Mod*, an RTS/FPS total conversion mod on the Source Engine. 
@@ -32,7 +32,7 @@ that nobody was going to want to play it. Hell, even huge studios struggled with
 I have a feeling that's probably the worst punishment for a game developer - feeling your game just never got a fair shot.
 I know I had (and still have) that feeling with *Empires Mod*.
 
-## David Kushner - Masters of Doom <img src="/images/audiobook.svg" class="svg" alt="I read this as an audiobook." />
+## David Kushner - Masters of Doom <img src="/images/audiobook.svg" class="svg-icon" alt="I read this as an audiobook." />
 
 *Masters of Doom* chronicles, in excruciating detail, the journey the original developers of DooM undertook and where they ended up. 
 I especially appreciated the nitty-gritty detail this book went into: you could perfectly envision the stuffy offices where they 
@@ -52,7 +52,7 @@ It sure sounded like a lot of fun while it lasted.
 I guess the industry itself was also maturing, with more money getting involved than ever before, 
 and that always puts a strain on these kinds of relationships.
 
-## G.J. Meyer - A World Undone <img src="/images/audiobook.svg" class="svg" alt="I read this as an audiobook." />
+## G.J. Meyer - A World Undone <img src="/images/audiobook.svg" class="svg-icon" alt="I read this as an audiobook." />
 
 For some reason, I've always been fascinated by World War 1. 
 Partly because nobody really seemed to realize this wouldn't be your average conflict, 
