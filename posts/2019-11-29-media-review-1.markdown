@@ -11,7 +11,7 @@ Thoughts about the media ruminate in my mind for some time, and I feel more at e
 They're not groundbreaking.
 But they're mine, and I'd like to share them.
 
-## Blood, Sweat, and Pixels
+## Blood, Sweat, and Pixels <img src="/images/audiobook.svg" style="display: inline; width: 1em; height: 1em;" />
 
 I've always appreciated reading about how games are made. 
 I made some forays into it personally with doing programming for *Empires Mod*, an RTS/FPS total conversion mod on the Source Engine. 
