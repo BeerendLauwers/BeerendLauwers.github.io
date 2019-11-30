@@ -18,6 +18,10 @@ div.image.small .figure img {
   text-align: center;
 }
 
+.figure .img {
+  max-width: 100%;
+}
+
 .note p {
     display: inline-block;
 }
