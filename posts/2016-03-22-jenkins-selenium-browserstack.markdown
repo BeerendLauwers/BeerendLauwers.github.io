@@ -39,7 +39,6 @@ Jenkins has built-in support for Maven jobs, and it's less complex than an Ant s
 
 [This blog post](http://www.guru99.com/maven-jenkins-with-selenium-complete-tutorial.html) explains it quite well, so follow that first.
 
-If it's down, here's a mirror: [Mirror](/images/selenium/Maven & Jenkins with Selenium_ Complete Tutorial.html).
 
 ### Interfacing with BrowserStack
 
